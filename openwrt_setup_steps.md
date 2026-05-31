@@ -579,9 +579,20 @@ We will tune the Router Advertisements and neighbor cache timeouts to let wirele
 
 ## 🔄 Phase 8: Dynamic DNS Setup & Cleanup
 
-We will configure DuckDNS in UCI, configure the `dns_server` lookup bypass to avoid cache mismatch, and prune system files.
+We will install the non-default Dynamic DNS service packages, configure DuckDNS in UCI, bypass local caches to prevent synchronization failures, and prune system backup residues.
 
-1.  **Configure DDNS in `/etc/config/ddns`:**
+1.  **Install Dynamic DNS Packages (CLI):**
+    Since Dynamic DNS is not a built-in service in vanilla OpenWrt, you must install the dynamic DNS scripts and its LuCI application extension manually:
+    ```bash
+    # Update package indexes and install DDNS utilities and Web GUI
+    apk update
+    apk add ddns-scripts ddns-scripts-services luci-app-ddns
+    ```
+    
+    > [!NOTE]
+    > **LuCI 'Services' Menu Visibility:** The **Services** tab in the main LuCI menu bar is hidden by default in fresh installations. It will automatically appear only after manually installing a service package (such as `luci-app-ddns`). After running the installation commands above, simply refresh your web browser or log back into LuCI to see the new **Services** ➔ **Dynamic DNS** menu.
+
+2.  **Configure DDNS in `/etc/config/ddns`:**
     Ensure `dns_server` is explicitly pointed to Cloudflare (`1.1.1.1`) to bypass local caches (domain name masked for privacy):
     ```ini
     config service 'myddns_ipv4'
@@ -612,7 +623,7 @@ We will configure DuckDNS in UCI, configure the `dns_server` lookup bypass to av
     > However, because we optimized AdGuard Home to cache DNS records for a minimum of **1 hour**, any query sent by the DDNS client through the local resolver would retrieve the **old cached IP** for up to an hour. The DDNS client would think the update failed, throw system warnings, and spam DuckDNS with duplicate update requests every 10 minutes.
     > Pointing the DDNS `dns_server` parameter directly to `1.1.1.1` forces it to bypass the local AdGuard cache and ask Cloudflare directly. Since Cloudflare respects DuckDNS's 60-second TTL, the router detects the new IP instantly, updates the LuCI GUI status immediately, and eliminates redundant update requests!
 
-2.  **Prune Configuration Leftovers & Disable Unused package triggers:**
+3.  **Prune Configuration Leftovers & Disable Unused package triggers:**
     ```bash
     # Remove backup and package leftovers
     rm -f /etc/config/dhcp.bak /etc/config/dhcp.apk-new /etc/adguardhome/adguardhome.yaml.bak /etc/firewall.user.bak

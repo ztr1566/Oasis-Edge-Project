@@ -27,9 +27,12 @@ Here is where all configurations are located in the OpenWrt Web GUI:
   │     ├── Firewall ────────────> Port Forwards, Traffic Rules, Custom Rules, IPsets
   │     ├── SQM QoS ─────────────> SQM Cake bufferbloat management
   │     └── DHCP and DNS ────────> DNS Rebind Protection & Dnsmasq settings
-  └── Services
+  └── Services (Visible only after package installation)
         └── Dynamic DNS ─────────> DuckDNS configuration and lookup bypass
 ```
+
+> [!NOTE]
+> **The 'Services' Menu Tab:** The **Services** tab in the top navigation bar is hidden by default on fresh OpenWrt installations. It will only appear once you manually install a service package (such as `luci-app-ddns` in Phase 8).
 
 ---
 
@@ -416,8 +419,10 @@ We will configure DuckDNS IP syncs and set the lookup server parameter to bypass
 
 ### 1. Install DDNS GUI Package
 *   Navigate to **System** ➔ **Software**.
-*   Search for `luci-app-ddns` and click **Install**.
-*   Re-login to reload the menu hierarchy.
+*   Click **Update Lists** to sync the package manager indexes with OpenWrt servers.
+*   In the **Filter** field, type `luci-app-ddns`.
+*   Click **Install** next to the `luci-app-ddns` package (this will automatically fetch and install `ddns-scripts`, `ddns-scripts-services`, and all required dynamic DNS scripts).
+*   **Refresh/Re-login to LuCI:** Because Dynamic DNS is not built-in, the top navigation menu does not have a "Services" tab initially. Once the package is installed, simply refresh your web browser or log back into LuCI. The new **Services** menu will automatically appear in the top navigation bar, exposing the **Dynamic DNS** configuration panel.
 
 ### 2. Configure DuckDNS Sync Settings
 *   Navigate to **Services** ➔ **Dynamic DNS**.
