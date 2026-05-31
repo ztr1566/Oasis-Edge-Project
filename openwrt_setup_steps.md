@@ -72,10 +72,10 @@ This disables the routing and DHCP capabilities of the ISP router, turning it in
     *   **VLAN ID:** If your ISP requires VLAN tagging (e.g., Telecom Egypt often uses VLAN `50` or `51` for internet), check **Enable VLAN ID** and enter your ISP's tag.
     *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
     *   Click **Save** or **Apply**.
-4.  **Disable Wi-Fi, DHCP, and IGMP Snooping:**
-    *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server. Click **Save**.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **uncheck** **IGMP Snooping**. Click **Save**. *This ensures that multicast and IPTV streams bypass the bridged modem without being filtered.*
+4.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server to turn it off. Click **Save**. *This ensures the OpenWrt Orange Pi handles all local IP addresses, DHCP leases, and filtering.*
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **uncheck** **IGMP Snooping** (disable it) to prevent the VR600 V3 from filtering or blocking multicast packets. Click **Save**.
+    *   **Keep Wi-Fi Enabled:** Do **not** disable the Wi-Fi. Ensure the 2.4 GHz and 5 GHz wireless networks are enabled and active on the VR600 V3. Since the wireless interface is bridged internally to the LAN switch, wireless clients will connect to the VR600's Wi-Fi but will receive their IP addresses, DNS resolution, and secure routing directly from the OpenWrt Orange Pi!
 5.  **Cabling:** Connect an Ethernet cable from any **LAN** port of the bridged VR600 V3 to the physical LAN port of the OpenWrt router (`eth0`/`br-lan`).
 
 ---

@@ -46,10 +46,10 @@ This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media conv
     *   **VLAN ID:** If your regional ISP utilizes virtual LAN tagging (e.g., Telecom Egypt often requires VLAN ID `50` or `51`), check **Enable VLAN ID** and input your ISP's required tag.
     *   **Connection Type:** Set to **Bridge** (or **Bridge Mode**).
     *   Save or apply settings.
-5.  **Disable Extra Services & IGMP Snooping:**
-    *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands to avoid redundant radio noise.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server completely.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it). This prevents the bridged VR600 V3 from filtering or blocking multicast packets (such as IPTV or network handshakes) passing through to OpenWrt.
+5.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server completely. *This ensures that the OpenWrt Orange Pi handles all local IP addresses, DNS, and filtering.*
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it) to prevent the VR600 V3 from filtering or blocking multicast discovery packets (e.g. Chromecast, mDNS sweeps).
+    *   **Keep Wi-Fi Enabled:** Do **not** disable the Wi-Fi radios. Ensure the 2.4 GHz and 5 GHz wireless networks remain enabled and configured on the VR600 V3. Since the VR600's wireless interfaces are internally bridged to its local LAN switch, all Wi-Fi clients will connect through the VR600's antennas but will receive their IP leases, DNS resolution (AdGuard Home), secure blocking, and traffic shaping directly from the central OpenWrt Orange Pi!
 6.  **Physical Cabling:** Connect an Ethernet cable from a **LAN** port of the bridged VR600 V3 to the physical network bridge (`eth0` / `br-lan`) of the OpenWrt router. OpenWrt will now handle the PPPoE session cleanly.
 
 ### 📡 Mode B: Downstream Access Point (AP Mode Only)
