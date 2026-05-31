@@ -43,7 +43,7 @@ This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media conv
 4.  **Create Bridge Connection Profile:**
     *   Click **Add** or **Create Connection**.
     *   **DSL Link Type:** Choose `VDSL` or `ADSL` according to your physical DSL connection.
-    *   **VLAN ID:** If your regional ISP utilizes virtual LAN tagging (e.g., Telecom Egypt often requires VLAN ID `50` or `51`), check **Enable VLAN ID** and input your ISP's required tag.
+    *   **VLAN ID:** Ensure **Enable VLAN ID** is **Unchecked** (Disabled). Do **not** use VLAN tagging (such as VLAN 50 or 51), as enabling VLAN tagging is not required and will prevent the PPPoE connection from establishing successfully.
     *   **Connection Type:** Set to **Bridge** (or **Bridge Mode**).
     *   Save or apply settings.
 5.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**

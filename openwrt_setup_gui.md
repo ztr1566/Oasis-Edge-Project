@@ -68,7 +68,7 @@ This disables the routing and DHCP capabilities of the ISP router, turning it in
 3.  **Create a Transparent Bridge Profile:**
     *   Click **Add** to create a new profile.
     *   **DSL Link Type:** Select `VDSL` or `ADSL` based on your physical broadband connection.
-    *   **VLAN ID:** If your ISP requires VLAN tagging (e.g., Telecom Egypt often uses VLAN `50` or `51` for internet), check **Enable VLAN ID** and enter your ISP's tag.
+    *   **VLAN ID:** Ensure **Enable VLAN ID** is **Unchecked** (Disabled). Do **not** enable VLAN tagging (such as VLAN 50 or 51), as doing so is not needed and will prevent the PPPoE connection from handshaking successfully.
     *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
     *   Click **Save** or **Apply**.
 4.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
