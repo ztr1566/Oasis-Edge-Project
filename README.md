@@ -46,9 +46,10 @@ This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media conv
     *   **VLAN ID:** If your regional ISP utilizes virtual LAN tagging (e.g., Telecom Egypt often requires VLAN ID `50` or `51`), check **Enable VLAN ID** and input your ISP's required tag.
     *   **Connection Type:** Set to **Bridge** (or **Bridge Mode**).
     *   Save or apply settings.
-5.  **Disable Extra Services:**
+5.  **Disable Extra Services & IGMP Snooping:**
     *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands to avoid redundant radio noise.
     *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server completely.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it). This prevents the bridged VR600 V3 from filtering or blocking multicast packets (such as IPTV or network handshakes) passing through to OpenWrt.
 6.  **Physical Cabling:** Connect an Ethernet cable from a **LAN** port of the bridged VR600 V3 to the physical network bridge (`eth0` / `br-lan`) of the OpenWrt router. OpenWrt will now handle the PPPoE session cleanly.
 
 ### 📡 Mode B: Downstream Access Point (AP Mode Only)
@@ -57,7 +58,9 @@ If you want to reuse the Wi-Fi antennas of your VR600 V3 (or general ISP router)
 1.  **Access Settings:** Connect your computer directly to the VR600 V3 LAN port and log in to `http://192.168.1.1`.
 2.  **Change local IP address:** Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**. Set the local IP address to a static value inside the OpenWrt subnet but outside the dynamic DHCP pool. 
     *   *Example:* Set it to `192.168.2.2` (Subnet mask `255.255.255.0`). Save the settings and let the router reboot. (You will access its interface at `http://192.168.2.2` in the future).
-3.  **Disable DHCP Server:** Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server. *This ensures OpenWrt remains the only local IP distributor.*
+3.  **Disable DHCP Server & IGMP Snooping:** 
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server. *This ensures OpenWrt remains the only local IP distributor.*
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it) so that the AP does not filter out or block multicast discovery packets (e.g., Chromecast/mDNS sweeps), allowing OpenWrt's bridge to manage multicast routing cleanly.
 4.  **Cabling (LAN-to-LAN):** Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3. 
     > [!WARNING]
     > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN link, you bypass its internal firewall and NAT, ensuring all wireless clients cleanly join the OpenWrt `192.168.2.x` network and route their DNS requests to your secure AdGuard Home portal.

@@ -71,9 +71,10 @@ This disables the routing and DHCP capabilities of the ISP router, turning it in
     *   **VLAN ID:** If your ISP requires VLAN tagging (e.g., Telecom Egypt often uses VLAN `50` or `51` for internet), check **Enable VLAN ID** and enter your ISP's tag.
     *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
     *   Click **Save** or **Apply**.
-4.  **Disable Wi-Fi and DHCP:**
+4.  **Disable Wi-Fi, DHCP, and IGMP Snooping:**
     *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands.
     *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server. Click **Save**.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **uncheck** **IGMP Snooping**. Click **Save**. *This ensures that multicast and IPTV streams bypass the bridged modem without being filtered.*
 5.  **Cabling:** Connect an Ethernet cable from any **LAN** port of the bridged VR600 V3 to the physical LAN port of the OpenWrt router (`eth0`/`br-lan`).
 
 ---
@@ -86,10 +87,12 @@ If you want to reuse your VR600 V3's powerful Wi-Fi antennas to expand wireless 
     *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
     *   Change the IP address to a static address inside the OpenWrt subnet but outside the dynamic pool range (e.g., set to `192.168.2.2`).
     *   Click **Save** and allow the device to reboot. (You will access its interface at `http://192.168.2.2` in the future).
-3.  **Disable DHCP Server:**
+3.  **Disable DHCP Server & IGMP Snooping:**
     *   Log in to `http://192.168.2.2`.
     *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server**.
-    *   **Uncheck** **Enable** under DHCP Server to turn it off completely.
+    *   **Uncheck** **Enable** under DHCP Server to turn it off completely. Click **Save**.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
+    *   **Uncheck** **IGMP Snooping** (disable it) so that the AP does not filter out or block multicast discovery packets (e.g., Chromecast/mDNS sweeps), allowing OpenWrt's bridge to manage multicast routing cleanly. Click **Save**.
 4.  **Connect LAN-to-LAN:**
     *   Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3.
     > [!WARNING]
