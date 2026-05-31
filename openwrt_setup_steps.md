@@ -83,6 +83,9 @@ This disables the routing and DHCP capabilities of the ISP router, turning it in
 ### Option B: Repurposed Downstream Access Point (AP Mode Only)
 If you want to reuse your VR600 V3's powerful Wi-Fi antennas to expand wireless coverage behind your OpenWrt gateway, configure it purely as a downstream Wi-Fi Access Point.
 
+> [!IMPORTANT]
+> **Division of Labor:** In this setup, the VR600 V3 is used **exclusively to provide Wi-Fi coverage for wireless clients**. All network routing, DNS filtering/resolution (via AdGuard Home), DHCP IP leasing, firewall parameters, and optimization layers are hosted and executed entirely by your central **Orange Pi (OpenWrt) gateway**.
+
 1.  **Access settings:** Connect your computer directly to the VR600 V3 (disconnected from OpenWrt) and log in to `http://192.168.1.1`.
 2.  **Change local IP address:**
     *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.

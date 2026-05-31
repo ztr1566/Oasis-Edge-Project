@@ -53,7 +53,10 @@ This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media conv
 6.  **Physical Cabling:** Connect an Ethernet cable from a **LAN** port of the bridged VR600 V3 to the physical network bridge (`eth0` / `br-lan`) of the OpenWrt router. OpenWrt will now handle the PPPoE session cleanly.
 
 ### 📡 Mode B: Downstream Access Point (AP Mode Only)
-If you want to reuse the Wi-Fi antennas of your VR600 V3 (or general ISP router) to expand wireless coverage behind your OpenWrt gateway, configure it purely as an Access Point.
+If you want to reuse the Wi-Fi antennas of your VR600 V3 (or general ISP router) to expand wireless coverage behind your OpenWrt gateway, configure it purely as an Access Point. 
+
+> [!IMPORTANT]
+> **Division of Labor:** In this configuration, the VR600 V3 is utilized **exclusively to establish the physical Wi-Fi radio connection for wireless clients**. All network routing, DNS resolution, DHCP dynamic IP allocations, traffic shaping, and firewall security blocks are executed entirely by the central **Orange Pi (OpenWrt) gateway**.
 
 1.  **Access Settings:** Connect your computer directly to the VR600 V3 LAN port and log in to `http://192.168.1.1`.
 2.  **Change local IP address:** Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**. Set the local IP address to a static value inside the OpenWrt subnet but outside the dynamic DHCP pool. 
