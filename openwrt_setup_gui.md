@@ -185,7 +185,7 @@ We will configure the Cloudflare WARP client tunnel for IPv6 outbounds and the W
     *   **IP Addresses:** Paste your WARP client IPv6 address: `2606:4700:110:81e6::xxxx/128`
 *   **Peers** tab ➔ Click **Add Peer**:
     *   **Description:** `Cloudflare_WARP`
-    *   **Public Key:** `bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=`
+    *   **Public Key:** `YOUR_CLOUDFLARE_WARP_PUBLIC_KEY` (This is Cloudflare's universal, non-secret public key: `bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=`)
     *   **Allowed IPs:** Add `::/0` (Routes all local IPv6 traffic through the tunnel).
     *   **Endpoint Host:** `188.114.97.170`
     *   **Endpoint Port:** `500`

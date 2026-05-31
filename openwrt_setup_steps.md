@@ -193,7 +193,7 @@ We will set up the Cloudflare WARP tunnel (`wg0`) for IPv6 outbounds and the Wir
 
     config wireguard_wg0 'wg0_peer'
             option interface 'wg0'
-            option public_key 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+            option public_key 'YOUR_CLOUDFLARE_WARP_PUBLIC_KEY' # Always 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=' for Cloudflare WARP (universal and non-secret)
             option endpoint_host '188.114.97.170'
             option endpoint_port '500'
             option route_allowed_ips '1'
