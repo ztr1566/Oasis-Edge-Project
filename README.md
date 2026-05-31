@@ -28,6 +28,42 @@ In Egypt, mainstream Internet Service Providers (ISPs) operate exclusively on le
 
 ---
 
+## 🔌 1.5. Upstream ISP Gateway Integration (TP-Link VR600 V3 & General ISP Routers)
+
+To prevent Double-NAT bottlenecks (routing latency, NAT table exhaustion, and port-forwarding failures), your upstream physical ISP gateway should be configured in either **Bridge Mode** (to act as a transparent modem) or repurposed as a **Downstream Access Point** (AP) behind the OpenWrt gateway. 
+
+While these steps focus on the TP-Link Archer **VR600 V3** (VDSL/ADSL modem router), they apply conceptually to almost all mainstream ISP gateway units.
+
+### 🌐 Mode A: Transparent Bridge Mode (Recommended)
+This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media converter (modem). OpenWrt will handle all routing, IP allocation (DHCP), and firewall duties, receiving the public WAN IP directly.
+
+1.  **Isolate Devices:** Disconnect the Ethernet cable between OpenWrt and your ISP router to avoid IP address conflicts during configuration.
+2.  **Access Settings:** Connect a computer directly to a LAN port on the VR600 V3 and log in to its web UI (typically `http://192.168.1.1`).
+3.  **Delete Default WAN Profile:** Navigate to **Advanced** ➔ **Network** ➔ **WAN Settings** (or Internet), select the default dynamic or PPPoE connection profile, and **Delete** it.
+4.  **Create Bridge Connection Profile:**
+    *   Click **Add** or **Create Connection**.
+    *   **DSL Link Type:** Choose `VDSL` or `ADSL` according to your physical DSL connection.
+    *   **VLAN ID:** If your regional ISP utilizes virtual LAN tagging (e.g., Telecom Egypt often requires VLAN ID `50` or `51`), check **Enable VLAN ID** and input your ISP's required tag.
+    *   **Connection Type:** Set to **Bridge** (or **Bridge Mode**).
+    *   Save or apply settings.
+5.  **Disable Extra Services:**
+    *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands to avoid redundant radio noise.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server completely.
+6.  **Physical Cabling:** Connect an Ethernet cable from a **LAN** port of the bridged VR600 V3 to the physical network bridge (`eth0` / `br-lan`) of the OpenWrt router. OpenWrt will now handle the PPPoE session cleanly.
+
+### 📡 Mode B: Downstream Access Point (AP Mode Only)
+If you want to reuse the Wi-Fi antennas of your VR600 V3 (or general ISP router) to expand wireless coverage behind your OpenWrt gateway, configure it purely as an Access Point.
+
+1.  **Access Settings:** Connect your computer directly to the VR600 V3 LAN port and log in to `http://192.168.1.1`.
+2.  **Change local IP address:** Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**. Set the local IP address to a static value inside the OpenWrt subnet but outside the dynamic DHCP pool. 
+    *   *Example:* Set it to `192.168.2.2` (Subnet mask `255.255.255.0`). Save the settings and let the router reboot. (You will access its interface at `http://192.168.2.2` in the future).
+3.  **Disable DHCP Server:** Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server. *This ensures OpenWrt remains the only local IP distributor.*
+4.  **Cabling (LAN-to-LAN):** Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3. 
+    > [!WARNING]
+    > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN link, you bypass its internal firewall and NAT, ensuring all wireless clients cleanly join the OpenWrt `192.168.2.x` network and route their DNS requests to your secure AdGuard Home portal.
+
+---
+
 ## 🌐 2. Dual-Stack Network & Routing Architecture
 
 The router implements an advanced, asymmetric dual-stack routing design designed to maximize privacy, isolate local traffic, and route IPv6 securely.

@@ -52,6 +52,51 @@ Here is where all configurations are located in the OpenWrt Web GUI:
 
 ---
 
+## 🔌 Phase 1.5: Upstream ISP Router Configuration (Bridge & Access Point Modes)
+
+To ensure OpenWrt handles all traffic shaping, security layers, and DNS encryption cleanly without double-NAT interference, your regular ISP router must be configured correctly. While these steps target the **TP-Link Archer VR600 V3** (VDSL/ADSL gateway), they apply universally to all standard ISP routers.
+
+### Option A: Bridge Mode (Recommended for Double-NAT Elimination)
+This disables the routing and DHCP capabilities of the ISP router, turning it into a pure transparent modem. OpenWrt will establish the PPPoE connection and receive the public IP address directly.
+
+1.  **Access the ISP Router GUI:**
+    *   Connect your computer directly to one of the VR600 V3's LAN ports (unconnected from OpenWrt).
+    *   Open your browser and navigate to `http://192.168.1.1` and log in.
+2.  **Delete the Default WAN Profile:**
+    *   Navigate to **Advanced** (top tab) ➔ **Network** ➔ **WAN Settings** (left menu).
+    *   Select the existing internet profile (PPPoE or Dynamic IP) and click **Delete**.
+3.  **Create a Transparent Bridge Profile:**
+    *   Click **Add** to create a new profile.
+    *   **DSL Link Type:** Select `VDSL` or `ADSL` based on your physical broadband connection.
+    *   **VLAN ID:** If your ISP requires VLAN tagging (e.g., Telecom Egypt often uses VLAN `50` or `51` for internet), check **Enable VLAN ID** and enter your ISP's tag.
+    *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
+    *   Click **Save** or **Apply**.
+4.  **Disable Wi-Fi and DHCP:**
+    *   Navigate to **Advanced** ➔ **Wireless** ➔ **Wireless Settings** and uncheck **Enable Wireless** on both 2.4 GHz and 5 GHz bands.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server. Click **Save**.
+5.  **Cabling:** Connect an Ethernet cable from any **LAN** port of the bridged VR600 V3 to the physical LAN port of the OpenWrt router (`eth0`/`br-lan`).
+
+---
+
+### Option B: Repurposed Downstream Access Point (AP Mode Only)
+If you want to reuse your VR600 V3's powerful Wi-Fi antennas to expand wireless coverage behind your OpenWrt gateway, configure it purely as a downstream Wi-Fi Access Point.
+
+1.  **Access settings:** Connect your computer directly to the VR600 V3 (disconnected from OpenWrt) and log in to `http://192.168.1.1`.
+2.  **Change local IP address:**
+    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
+    *   Change the IP address to a static address inside the OpenWrt subnet but outside the dynamic pool range (e.g., set to `192.168.2.2`).
+    *   Click **Save** and allow the device to reboot. (You will access its interface at `http://192.168.2.2` in the future).
+3.  **Disable DHCP Server:**
+    *   Log in to `http://192.168.2.2`.
+    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server**.
+    *   **Uncheck** **Enable** under DHCP Server to turn it off completely.
+4.  **Connect LAN-to-LAN:**
+    *   Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3.
+    > [!WARNING]
+    > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN connection, you bypass the VR600's internal routing stack and NAT, merging all wireless clients directly into OpenWrt's subnet and forwarding all their DNS queries to your local AdGuard Home resolver.
+
+---
+
 ## 🌐 Phase 2: Dual-Stack Network Interfaces Setup
 
 We will configure the LAN static IP, PPPoE WAN connection, the dynamic Packet Steering trigger, and the secondary Modem access bridge.
