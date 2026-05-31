@@ -444,16 +444,30 @@ We will deploy firewall filters and traffic control rules to throttle and disrup
 
 ## 🎛️ Phase 6: SQM Cake & Kernel Performance Tuning
 
-We will configure SQM piece_of_cake and tune the TCP kernel parameters to eliminate bufferbloat and enable TCP Fast Open.
+We will install the SQM traffic shaping modules, configure SQM piece_of_cake limits based on 90% of your actual tested line speeds, and tune TCP kernel parameters to eliminate bufferbloat and enable TCP Fast Open.
 
-1.  **Configure SQM Cake:**
-    Configure `/etc/config/sqm`:
+1.  **Install SQM Packages (CLI):**
+    Since SQM is not a built-in feature in vanilla OpenWrt, you must install the traffic shaper modules and its Web GUI application manually:
+    ```bash
+    # Update package indexes and install SQM shaper modules and its Web GUI
+    apk update
+    apk add sqm-scripts sqm-scripts-extra luci-app-sqm
+    ```
+
+2.  **Configure SQM Cake:**
+    Open `/etc/config/sqm` and configure the queue settings. Replace `YOUR_DOWNLOAD_SPEED_KBIT` and `YOUR_UPLOAD_SPEED_KBIT` with **90% of your actual tested speeds** (e.g. measured via Speedtest). Do not use hardcoded values, as every internet subscription has different speeds.
+    
+    *   **Calculation Formula:** `Actual Speed in Mbps * 1000 * 0.9 = SQM Value`
+        *   *Download Example:* If your actual tested speed is `60 Mbps`, calculate `60 * 1000 * 0.9 = 54000` Kbit/s.
+        *   *Upload Example:* If your actual tested speed is `10 Mbps`, calculate `10 * 1000 * 0.9 = 9000` Kbit/s.
+
+    Configure the settings as follows:
     ```ini
     config queue 'eth1'
             option enabled '1'
             option interface 'pppoe-WAN'
-            option download '54000'
-            option upload '9200'
+            option download 'YOUR_DOWNLOAD_SPEED_KBIT'
+            option upload 'YOUR_UPLOAD_SPEED_KBIT'
             option qdisc 'cake'
             option script 'piece_of_cake.qos'
             option linklayer 'ethernet'
@@ -488,13 +502,13 @@ We will configure SQM piece_of_cake and tune the TCP kernel parameters to elimin
     > In many home networks, your upload speed (9.2 Mbps) is much slower than your download speed (54 Mbps). When downloading a large file, your PC must constantly upload "Acknowledgement" (ACK) packets to confirm it received the data.
     > If these ACK packets saturate your tiny 9.2 Mbps upload queue, they will get delayed. This forces the sending server to slow down its downloads, thinking your connection is congested. The `ack-filter` intelligently drops older, redundant ACK packets in the queue, keeping your upload pipe completely clear and maximizing your download speeds!
 
-2.  **Optimize `/etc/sysctl.conf`:**
+3.  **Optimize `/etc/sysctl.conf`:**
     Edit `/etc/sysctl.conf` to configure BBR congestion control, TCP Fast Open, and large UDP network buffers:
     ```ini
     net.netfilter.nf_conntrack_tcp_timeout_established = 600
     net.ipv6.conf.all.forwarding=1
     net.ipv6.conf.default.forwarding=1
-
+ 
     # Latency & Performance Tuning
     net.core.netdev_max_backlog = 5000
     net.ipv4.tcp_fastopen = 3
@@ -503,12 +517,12 @@ We will configure SQM piece_of_cake and tune the TCP kernel parameters to elimin
     > [!TIP]
     > **Why we set `net.ipv4.tcp_fastopen = 3`:**
     > Enables TCP Fast Open (TFO) for both incoming and outgoing connections. TFO allows data to be sent during the initial TCP 3-way handshake, saving a full round-trip time (RTT) for repeated connections, making web requests feel much snappier.
-
+ 
     > [!TIP]
     > **Why we set `net.ipv4.tcp_slow_start_after_idle = 0`:**
     > Disables slow-start restart after a connection goes idle. Normally, TCP resets its congestion window size if a connection is idle, forcing it to slowly ramp up speed again. Disabling this ensures that active persistent connections instantly transmit at full speed when resuming activity.
-
-3.  **Reload Sysctl Settings:**
+ 
+4.  **Reload Sysctl Settings:**
     ```bash
     sysctl -p
     ```

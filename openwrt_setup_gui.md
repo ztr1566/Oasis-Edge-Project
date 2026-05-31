@@ -371,16 +371,19 @@ We will configure the Hierarchical Token Bucket and Cake queuing algorithm to el
 
 ### 1. Install SQM GUI Package
 *   Navigate to **System** ➔ **Software**.
-*   Search for `luci-app-sqm` and click **Install**.
-*   Refresh your browser tab or log back in to load the SQM menu.
+*   Click **Update Lists** to sync the package indexes with OpenWrt servers.
+*   Search for `luci-app-sqm` and click **Install**. (This will automatically download and install `sqm-scripts`, `sqm-scripts-extra`, and the web GUI).
+*   Refresh your browser tab or log back in to load the new **Network** ➔ **SQM QoS** menu.
 
 ### 2. Configure SQM Interfaces
 *   Navigate to **Network** ➔ **SQM QoS**.
 *   Under the **Basic Settings** tab:
     *   **Enable:** **Check** (Enabled).
     *   **Interface name:** Select your active WAN link: `pppoe-WAN`.
-    *   **Download Speed (kbit/s):** `54000` (Leaves a safety margin under your 60 Mbps link).
-    *   **Upload Speed (kbit/s):** `9200` (Leaves a safety margin under your 10 Mbps upload).
+    *   **Download Speed (kbit/s):** Enter **90% of your actual tested download speed** (Calculate: `Tested Speed in Mbps * 1000 * 0.9`). Do not use hardcoded values, as every network speed is different.
+        *   *Example:* If your speed test shows `60 Mbps` download, set this to `54000` (`60 * 1000 * 0.9`).
+    *   **Upload Speed (kbit/s):** Enter **90% of your actual tested upload speed** (Calculate: `Tested Speed in Mbps * 1000 * 0.9`).
+        *   *Example:* If your speed test shows `10 Mbps` upload, set this to `9000` (`10 * 1000 * 0.9`).
 *   Under the **Queue Discipline** tab:
     *   **Queuing discipline:** Select `cake`.
     *   **Queue setup script:** Select `piece_of_cake.qos`.
