@@ -1,0 +1,9 @@
+
+config dropbear 'main'
+	option enable '1'
+	option PasswordAuth 'off'
+	option RootPasswordAuth 'off'
+	option Port '22'
+	option IdleTimeout '300'
+	option Interface 'lan'
+

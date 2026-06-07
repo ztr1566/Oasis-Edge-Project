@@ -7,8 +7,8 @@
 # avoids dnsmasq-full conflicts, resizes partitions on the fly to unlock full
 # SD card capacity, and registers services natively using their own CLI tools.
 #
-# Last updated: 2026-06-05 — Migrated from WireGuard to MASQUE (usque) for
-# DPI-resistant IPv6 tunnel via Cloudflare WARP.
+# Last updated: 2026-06-07 — Synced RA timers, SQM values to live tuned config.
+# Removed dead usque references. Fixed cron intervals to 1-minute.
 # IPv6 optimized: SLAAC + stateless RA (no stateful DHCPv6 addresses).
 # ==============================================================================
 
@@ -64,11 +64,11 @@ if [ -f /etc/dropbear/authorized_keys ]; then
     echo "   ➔ Authorized keys secured."
 fi
 
-# 6. Register AdGuard Home Service natively via CLI
-echo "⚙️ Registering AdGuard Home service natively via CLI..."
-/usr/bin/adguardhome -s install >/dev/null 2>&1
-/usr/bin/adguardhome -s start >/dev/null 2>&1
-echo "✅ AdGuard Home service natively registered and started."
+# 6. Register AdGuard Home Service via init.d
+echo "⚙️ Enabling AdGuard Home service..."
+/etc/init.d/adguardhome enable
+/etc/init.d/adguardhome start >/dev/null 2>&1
+echo "✅ AdGuard Home service enabled and started."
 
 # 7. Automated Storage Expansion & Partition Unlock (On-The-Fly Resizing)
 echo "💾 Expanding root partition to utilize full SD card capacity..."
@@ -114,6 +114,10 @@ fi
 # 8. Re-Apply System Optimizations & Hardening
 echo "🔧 Applying system optimizations and disabling unused services..."
 
+# Set descriptive hostname
+uci set system.@system[0].hostname='OasisEdge'
+uci commit system
+
 # Disable unused and unnecessary services for minimal footprint
 # NOTE: odhcpd is kept ENABLED — it handles RA (Router Advertisements)
 #       which is required for SLAAC IPv6 addressing on the LAN.
@@ -150,25 +154,53 @@ uci set dhcp.lan.ra_slaac='1'
 uci -q delete dhcp.lan.ra_flags
 uci add_list dhcp.lan.ra_flags='other-config'
 
+# RA parameters — tuned for stable operation and battery life
+# Values synced from live production config (2026-06-07)
+uci set dhcp.lan.ra_maxinterval='900'
+uci set dhcp.lan.ra_mininterval='200'
+uci set dhcp.lan.ra_lifetime='3600'
+uci set dhcp.lan.ra_mtu='1280'
+uci set dhcp.lan.ra_unicast='1'
+uci set dhcp.lan.ra_retransmit='2000'
+uci set dhcp.lan.ra_default='2'
+uci -q delete dhcp.lan.ra_reachable
+uci -q delete dhcp.lan.ra_dns
+uci add_list dhcp.lan.ra_dns='2a09:7373::1'
+
 # Sync RA lifetimes with DHCPv4 leasetime for consistency
 uci set dhcp.lan.ra_useleasetime='1'
+
+# Add DHCPv4 options for faster browsing (domain, broadcast, disable WPAD)
+uci add_list dhcp.lan.dhcp_option='15,lan'
+uci add_list dhcp.lan.dhcp_option='28,192.168.2.255'
+uci add_list dhcp.lan.dhcp_option='252,"\n"'
 
 # Remove ULA prefix if present (redundant with stable ISP GUA prefix)
 uci -q delete network.globals.ula_prefix
 
 uci commit dhcp
 uci commit network
-echo "   ➔ IPv6: SLAAC enabled, stateful DHCPv6 disabled, lifetimes synced."
+echo "   ➔ IPv6: SLAAC enabled, stateful DHCPv6 disabled, RA timers synced."
 
 # Ensure the IPv6 SLAAC auto-naming script is executable
 if [ -f /root/sync_ipv6_hosts.sh ]; then
     chmod +x /root/sync_ipv6_hosts.sh
     echo "   ➔ IPv6 SLAAC sync script permissions restored."
 
-    # Re-inject the cron job silently if missing
+    # Re-inject the cron job silently if missing (every 1 minute)
     if ! crontab -l 2>/dev/null | grep -q 'sync_ipv6_hosts.sh'; then
-        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
-        echo "   ➔ Cron job for IPv6 SLAAC sync injected silently."
+        (crontab -l 2>/dev/null; echo '* * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
+        echo "   ➔ Cron job for IPv6 SLAAC sync injected (every 1 min)."
+    fi
+fi
+
+if [ -f /root/sync_agh_ipv6_clients.sh ]; then
+    chmod +x /root/sync_agh_ipv6_clients.sh
+    echo "   ➔ AdGuardHome IPv6 sync script permissions restored."
+
+    if ! crontab -l 2>/dev/null | grep -q 'sync_agh_ipv6_clients.sh'; then
+        (crontab -l 2>/dev/null; echo '* * * * * /root/sync_agh_ipv6_clients.sh >/dev/null 2>&1') | crontab -
+        echo "   ➔ Cron job for AGH IPv6 sync injected (every 1 min)."
     fi
 fi
 
@@ -180,6 +212,8 @@ fi
 # =========================================================================
 # 9. SQM / QoS Hardening
 # =========================================================================
+# Values synced from live production config (2026-06-07)
+# =========================================================================
 echo "📶 Applying SQM / QoS configuration..."
 
 uci set firewall.@defaults[0].flow_offloading='0'
@@ -188,8 +222,8 @@ echo "   ➔ Flow offloading disabled (required for SQM to work correctly)."
 
 uci set sqm.eth1.enabled='1'
 uci set sqm.eth1.interface='pppoe-WAN'
-uci set sqm.eth1.download='68095'
-uci set sqm.eth1.upload='9728'
+uci set sqm.eth1.download='52000'
+uci set sqm.eth1.upload='9400'
 uci set sqm.eth1.qdisc='cake'
 uci set sqm.eth1.script='piece_of_cake.qos'
 uci set sqm.eth1.linklayer='ethernet'
@@ -199,57 +233,49 @@ uci set sqm.eth1.squash_dscp='0'
 uci set sqm.eth1.squash_ingress='0'
 uci set sqm.eth1.ingress_ecn='ECN'
 uci set sqm.eth1.egress_ecn='ECN'
-uci set sqm.eth1.iqdisc_opts='nat dual-dsthost rtt 40ms'
-uci set sqm.eth1.eqdisc_opts='nat dual-srchost ack-filter rtt 40ms'
+uci set sqm.eth1.iqdisc_opts='nat dual-dsthost diffserv4 mpu 68'
+uci set sqm.eth1.eqdisc_opts='nat dual-srchost ack-filter diffserv4 mpu 68'
 uci set sqm.eth1.qdisc_really_really_advanced='1'
-echo "   ➔ SQM Cake configured: 68095↓ / 9728↑ kbps, per-host fairness, ECN."
+echo "   ➔ SQM Cake configured: 52000↓ / 9400↑ kbps, diffserv4, ECN."
 
 uci commit firewall
 uci commit sqm
 echo "✅ SQM / QoS hardening applied and committed."
 
 # =========================================================================
-# 10. MASQUE Tunnel (usque) — Cloudflare WARP IPv6
+# 10. WireGuard Tunnel — Cloudflare WARP IPv6
 # =========================================================================
-# Replaced WireGuard with usque MASQUE client because Egyptian ISPs use
-# Deep Packet Inspection (DPI) to block WireGuard handshakes on certain
-# IP ranges (197.x.x.x). MASQUE traffic looks like standard HTTPS over
-# TCP port 443 — completely indistinguishable from normal web browsing.
-# Uses HTTP/2 TCP mode for maximum DPI resistance and reliability.
-# WARP+ (Argo Smart Routing) license applied for optimized routing.
+# WireGuard for best latency and Egypt routing.
+# A cron script bounces the WAN interface if the IP starts with
+# 197.x.x.x, since Egyptian ISPs block WireGuard handshakes on that range.
 # =========================================================================
-echo "🔒 Configuring MASQUE WARP+ (usque) tunnel for IPv6..."
+echo "🔒 Configuring WireGuard WARP tunnel for IPv6..."
 
-# Ensure usque binary is executable
-if [ -f /usr/bin/usque ]; then
-    chmod +x /usr/bin/usque
-    echo "   ➔ usque binary permissions restored."
-fi
+# Configure WireGuard wg0 interface
+uci set network.wg0=interface
+uci set network.wg0.proto='wireguard'
+uci set network.wg0.private_key='4JiByvjAZ4pI/Gxub5nG84Nm9v+IT9gj4CJNvd71Q1c='
+uci -q delete network.wg0.addresses
+uci add_list network.wg0.addresses='172.16.0.2/32'
+uci add_list network.wg0.addresses='2606:4700:110:8547:f97:aeec:7fd6:1d36/128'
+uci set network.wg0.mtu='1280'
 
-# Ensure hook scripts are executable
-if [ -d /etc/usque ]; then
-    chmod +x /etc/usque/up.sh 2>/dev/null
-    chmod +x /etc/usque/down.sh 2>/dev/null
-    echo "   ➔ usque hook scripts permissions restored."
-fi
+uci -q delete network.@wireguard_wg0[0]
+uci add network wireguard_wg0
+uci rename network.@wireguard_wg0[-1]=wg0_peer
+uci set network.wg0_peer.public_key='bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
+uci set network.wg0_peer.endpoint_host='162.159.192.1'
+uci set network.wg0_peer.endpoint_port='2408'
+uci set network.wg0_peer.route_allowed_ips='1'
+uci -q delete network.wg0_peer.allowed_ips
+uci add_list network.wg0_peer.allowed_ips='::/0'
+uci set network.wg0_peer.persistent_keepalive='25'
 
-# Ensure init script is executable
-if [ -f /etc/init.d/usque ]; then
-    chmod +x /etc/init.d/usque
-    echo "   ➔ usque init script permissions restored."
-fi
-
-# Load TUN kernel module
-modprobe tun 2>/dev/null
-
-# Increase UDP buffer sizes for QUIC performance
-sysctl -w net.core.rmem_max=7500000 >/dev/null 2>&1
-sysctl -w net.core.wmem_max=7500000 >/dev/null 2>&1
-
-# Configure firewall zone for usque tun0 device
+# Configure firewall zone for wg0 device
 uci set firewall.warp=zone
 uci set firewall.warp.name='warp'
-uci set firewall.warp.device='tun0'
+uci set firewall.warp.device='wg0'
+uci set firewall.warp.network='wg0'
 uci set firewall.warp.input='REJECT'
 uci set firewall.warp.output='ACCEPT'
 uci set firewall.warp.forward='REJECT'
@@ -262,12 +288,39 @@ uci set firewall.lan_to_warp=forwarding
 uci set firewall.lan_to_warp.src='lan'
 uci set firewall.lan_to_warp.dest='warp'
 
+uci commit network
 uci commit firewall
-echo "   ➔ Firewall zone 'warp' configured for tun0 device."
+echo "   ➔ WireGuard wg0 configured and firewall updated."
 
-# Enable and start usque service
-/etc/init.d/usque enable
-echo "✅ MASQUE (usque) tunnel configured and enabled."
+# Deploy the WAN IP checker with cooldown (avoids 197.x DPI blocks)
+cat << 'EOF' > /root/check_wg_197.sh
+#!/bin/sh
+# Check WAN IP — reconnect with cooldown if on 197.x DPI block
+COOLDOWN_FILE="/tmp/wan_reconnect_cooldown"
+COOLDOWN=300  # 5 minute cooldown between reconnects
+
+# Skip if recently reconnected
+if [ -f "$COOLDOWN_FILE" ]; then
+    LAST=$(cat "$COOLDOWN_FILE")
+    NOW=$(date +%s)
+    [ $((NOW - LAST)) -lt $COOLDOWN ] && exit 0
+fi
+
+WAN_IP=$(ip -4 addr show pppoe-WAN 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1)
+
+if echo "$WAN_IP" | grep -q "^197\."; then
+    logger -t check_ip_wg "WAN IP is $WAN_IP (197.x detected). Reconnecting WAN..."
+    date +%s > "$COOLDOWN_FILE"
+    ifdown WAN
+    sleep 5
+    ifup WAN
+fi
+EOF
+chmod +x /root/check_wg_197.sh
+if ! crontab -l 2>/dev/null | grep -q "check_wg_197.sh"; then
+    (crontab -l 2>/dev/null; echo '* * * * * /root/check_wg_197.sh >/dev/null 2>&1') | crontab -
+fi
+echo "   ➔ Deployed IP checker with 5-min cooldown to bypass 197.x DPI block."
 
 # 11. Restart Services to Apply Restored Configs
 echo "🔄 Reloading router services..."
@@ -280,7 +333,6 @@ echo "🔄 Reloading router services..."
 /etc/init.d/cron restart
 /etc/init.d/adguardhome restart >/dev/null 2>&1
 /etc/init.d/uhttpd restart >/dev/null 2>&1
-/etc/init.d/usque start >/dev/null 2>&1
 
 echo "🎉 OasisEdge recovery completed successfully! Your network is 100% operational."
 echo "========================================================================"

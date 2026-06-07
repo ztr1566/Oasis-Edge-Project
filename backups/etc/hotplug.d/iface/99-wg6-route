@@ -1,0 +1,7 @@
+#!/bin/sh
+if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wg0" ]; then
+    sleep 3
+    ip -6 route replace ::/0 dev wg0
+    ip route flush cache
+    /etc/init.d/odhcpd restart
+fi

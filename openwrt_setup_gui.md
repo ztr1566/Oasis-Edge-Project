@@ -27,12 +27,9 @@ Here is where all configurations are located in the OpenWrt Web GUI:
   │     ├── Firewall ────────────> Port Forwards, Traffic Rules, Custom Rules, IPsets
   │     ├── SQM QoS ─────────────> SQM Cake bufferbloat management
   │     └── DHCP and DNS ────────> DNS Rebind Protection & Dnsmasq settings
-  └── Services (Visible only after package installation)
+  └── Services
         └── Dynamic DNS ─────────> DuckDNS configuration and lookup bypass
 ```
-
-> [!NOTE]
-> **The 'Services' Menu Tab:** The **Services** tab in the top navigation bar is hidden by default on fresh OpenWrt installations. It will only appear once you manually install a service package (such as `luci-app-ddns` in Phase 8).
 
 ---
 
@@ -52,57 +49,6 @@ Here is where all configurations are located in the OpenWrt Web GUI:
         *   **Password:** Enter your secure password.
         *   **Confirmation:** Re-enter your secure password.
     *   Scroll down and click **Save & Apply**.
-
----
-
-## 🔌 Phase 1.5: Upstream ISP Router Configuration (Bridge & Access Point Modes)
-
-To ensure OpenWrt handles all traffic shaping, security layers, and DNS encryption cleanly without double-NAT interference, your regular ISP router must be configured correctly. While these steps target the **TP-Link Archer VR600 V3** (VDSL/ADSL gateway), they apply universally to all standard ISP routers.
-
-### Option A: Bridge Mode (Recommended for Double-NAT Elimination)
-This disables the routing and DHCP capabilities of the ISP router, turning it into a pure transparent modem. OpenWrt will establish the PPPoE connection and receive the public IP address directly.
-
-1.  **Access the ISP Router GUI:**
-    *   Connect your computer directly to one of the VR600 V3's LAN ports (unconnected from OpenWrt).
-    *   Open your browser and navigate to `http://192.168.1.1` and log in.
-2.  **Delete the Default WAN Profile:**
-    *   Navigate to **Advanced** (top tab) ➔ **Network** ➔ **WAN Settings** (left menu).
-    *   Select the existing internet profile (PPPoE or Dynamic IP) and click **Delete**.
-3.  **Create a Transparent Bridge Profile:**
-    *   Click **Add** to create a new profile.
-    *   **DSL Link Type:** Select `VDSL` or `ADSL` based on your physical broadband connection.
-    *   **VLAN ID:** Ensure **Enable VLAN ID** is **Unchecked** (Disabled). Do **not** enable VLAN tagging (such as VLAN 50 or 51), as doing so is not needed and will prevent the PPPoE connection from handshaking successfully.
-    *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
-    *   Click **Save** or **Apply**.
-4.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server to turn it off. Click **Save**. *This ensures the OpenWrt Orange Pi handles all local IP addresses, DHCP leases, and filtering.*
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **uncheck** **IGMP Snooping** (disable it) to prevent the VR600 V3 from filtering or blocking multicast packets. Click **Save**.
-    *   **Keep Wi-Fi Enabled:** Do **not** disable the Wi-Fi. Ensure the 2.4 GHz and 5 GHz wireless networks are enabled and active on the VR600 V3. Since the wireless interface is bridged internally to the LAN switch, wireless clients will connect to the VR600's Wi-Fi but will receive their IP addresses, DNS resolution, and secure routing directly from the OpenWrt Orange Pi!
-5.  **Cabling:** Connect an Ethernet cable from any **LAN** port of the bridged VR600 V3 to the physical LAN port of the OpenWrt router (`eth0`/`br-lan`).
-
----
-
-### Option B: Repurposed Downstream Access Point (AP Mode Only)
-If you want to reuse your VR600 V3's powerful Wi-Fi antennas to expand wireless coverage behind your OpenWrt gateway, configure it purely as a downstream Wi-Fi Access Point.
-
-> [!IMPORTANT]
-> **Division of Labor:** In this setup, the VR600 V3 is used **exclusively to provide Wi-Fi coverage for wireless clients**. All network routing, DNS filtering/resolution (via AdGuard Home), DHCP IP leasing, firewall parameters, and optimization layers are hosted and executed entirely by your central **Orange Pi (OpenWrt) gateway**.
-
-1.  **Access settings:** Connect your computer directly to the VR600 V3 (disconnected from OpenWrt) and log in to `http://192.168.1.1`.
-2.  **Change local IP address:**
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
-    *   Change the IP address to a static address inside the OpenWrt subnet but outside the dynamic pool range (e.g., set to `192.168.2.2`).
-    *   Click **Save** and allow the device to reboot. (You will access its interface at `http://192.168.2.2` in the future).
-3.  **Disable DHCP Server & IGMP Snooping:**
-    *   Log in to `http://192.168.2.2`.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server**.
-    *   **Uncheck** **Enable** under DHCP Server to turn it off completely. Click **Save**.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
-    *   **Uncheck** **IGMP Snooping** (disable it) so that the AP does not filter out or block multicast discovery packets (e.g., Chromecast/mDNS sweeps), allowing OpenWrt's bridge to manage multicast routing cleanly. Click **Save**.
-4.  **Connect LAN-to-LAN:**
-    *   Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3.
-    > [!WARNING]
-    > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN connection, you bypass the VR600's internal routing stack and NAT, merging all wireless clients directly into OpenWrt's subnet and forwarding all their DNS queries to your local AdGuard Home resolver.
 
 ---
 
@@ -185,7 +131,7 @@ We will configure the Cloudflare WARP client tunnel for IPv6 outbounds and the W
     *   **IP Addresses:** Paste your WARP client IPv6 address: `2606:4700:110:81e6::xxxx/128`
 *   **Peers** tab ➔ Click **Add Peer**:
     *   **Description:** `Cloudflare_WARP`
-    *   **Public Key:** `YOUR_CLOUDFLARE_WARP_PUBLIC_KEY` (This is Cloudflare's universal, non-secret public key: `bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=`)
+    *   **Public Key:** `bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=`
     *   **Allowed IPs:** Add `::/0` (Routes all local IPv6 traffic through the tunnel).
     *   **Endpoint Host:** `188.114.97.170`
     *   **Endpoint Port:** `500`
@@ -371,25 +317,22 @@ We will configure the Hierarchical Token Bucket and Cake queuing algorithm to el
 
 ### 1. Install SQM GUI Package
 *   Navigate to **System** ➔ **Software**.
-*   Click **Update Lists** to sync the package indexes with OpenWrt servers.
-*   Search for `luci-app-sqm` and click **Install**. (This will automatically download and install `sqm-scripts`, `sqm-scripts-extra`, and the web GUI).
-*   Refresh your browser tab or log back in to load the new **Network** ➔ **SQM QoS** menu.
+*   Search for `luci-app-sqm` and click **Install**.
+*   Refresh your browser tab or log back in to load the SQM menu.
 
 ### 2. Configure SQM Interfaces
 *   Navigate to **Network** ➔ **SQM QoS**.
 *   Under the **Basic Settings** tab:
     *   **Enable:** **Check** (Enabled).
     *   **Interface name:** Select your active WAN link: `pppoe-WAN`.
-    *   **Download Speed (kbit/s):** Enter **90% of your actual tested download speed** (Calculate: `Tested Speed in Mbps * 1000 * 0.9`). Do not use hardcoded values, as every network speed is different.
-        *   *Example:* If your speed test shows `60 Mbps` download, set this to `54000` (`60 * 1000 * 0.9`).
-    *   **Upload Speed (kbit/s):** Enter **90% of your actual tested upload speed** (Calculate: `Tested Speed in Mbps * 1000 * 0.9`).
-        *   *Example:* If your speed test shows `10 Mbps` upload, set this to `9000` (`10 * 1000 * 0.9`).
+    *   **Download Speed (kbit/s):** `51000` (Leaves a safe margin under your 61 Mbps link for ultra-low latency).
+    *   **Upload Speed (kbit/s):** `8700` (Leaves a safe margin under your 10.2 Mbps upload).
 *   Under the **Queue Discipline** tab:
     *   **Queuing discipline:** Select `cake`.
     *   **Queue setup script:** Select `piece_of_cake.qos`.
 *   Under the **Link Layer Adaptation** tab:
     *   **Link layer:** Select `Ethernet`.
-    *   **Overhead:** `30`
+    *   **Overhead:** `34` (VDSL2 PPPoE precise overhead)
 *   Click **Save & Apply**.
 
 ---
@@ -422,10 +365,8 @@ We will configure DuckDNS IP syncs and set the lookup server parameter to bypass
 
 ### 1. Install DDNS GUI Package
 *   Navigate to **System** ➔ **Software**.
-*   Click **Update Lists** to sync the package manager indexes with OpenWrt servers.
-*   In the **Filter** field, type `luci-app-ddns`.
-*   Click **Install** next to the `luci-app-ddns` package (this will automatically fetch and install `ddns-scripts`, `ddns-scripts-services`, and all required dynamic DNS scripts).
-*   **Refresh/Re-login to LuCI:** Because Dynamic DNS is not built-in, the top navigation menu does not have a "Services" tab initially. Once the package is installed, simply refresh your web browser or log back into LuCI. The new **Services** menu will automatically appear in the top navigation bar, exposing the **Dynamic DNS** configuration panel.
+*   Search for `luci-app-ddns` and click **Install**.
+*   Re-login to reload the menu hierarchy.
 
 ### 2. Configure DuckDNS Sync Settings
 *   Navigate to **Services** ➔ **Dynamic DNS**.

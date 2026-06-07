@@ -1,0 +1,252 @@
+
+config dnsmasq
+	option domainneeded '1'
+	option boguspriv '1'
+	option filterwin2k '0'
+	option localise_queries '1'
+	option rebind_protection '1'
+	option rebind_localhost '1'
+	option local '/lan/'
+	option domain 'lan'
+	option expandhosts '1'
+	option nonegcache '0'
+	option cachesize '1000'
+	option authoritative '1'
+	option readethers '1'
+	option leasefile '/tmp/dhcp.leases'
+	option localservice '1'
+	option ednspacket_max '1232'
+	option filter_aaaa '0'
+	option filter_a '0'
+	option port '5353'
+	option localuse '0'
+	option noresolv '1'
+	list listen_address '127.0.0.1'
+	list listen_address '192.168.2.1'
+	list listen_address '::1'
+	option min_cache_ttl '300'
+
+config dhcp 'lan'
+	option interface 'lan'
+	option start '200'
+	option limit '51'
+	option leasetime '12h'
+	option dhcpv4 'server'
+	list dhcp_option '6,192.168.2.1'
+	list dhcp_option '15,lan'
+	list dhcp_option '28,192.168.2.255'
+	list dhcp_option '252,"\n"'
+	option ra 'server'
+	option dhcpv6 'disabled'
+	option ra_default '2'
+	option ra_maxinterval '900'
+	option ra_mininterval '200'
+	option ra_lifetime '3600'
+	option ra_mtu '1280'
+	option ra_unicast '1'
+	option ra_retransmit '2000'
+	option ra_slaac '1'
+	option ra_useleasetime '1'
+	list ra_dns '2a09:7373::1'
+	list ra_flags 'other-config'
+
+config dhcp 'wan'
+	option interface 'wan'
+	option ignore '1'
+
+config odhcpd 'odhcpd'
+	option leasefile '/tmp/odhcpd.leases'
+	option leasetrigger '/usr/sbin/odhcpd-update'
+	option loglevel '4'
+	option piodir '/tmp/odhcpd-piodir'
+	option hostsdir '/tmp/hosts'
+
+config host
+	option name 'Samsung-TV'
+	list mac '80:47:86:68:E3:3D'
+	option ip '192.168.2.100'
+	option leasetime 'infinite'
+
+config host
+	option name 'Ghada-S9'
+	list mac '24:18:1D:81:A7:F2'
+	option ip '192.168.2.101'
+	option leasetime 'infinite'
+
+config host
+	option name 'Redmi-Note8-Pro'
+	list mac '92:4D:25:58:51:B2'
+	option ip '192.168.2.102'
+	option leasetime 'infinite'
+
+config host
+	option name 'Honor-Pad-X7'
+	list mac 'CC:62:00:38:98:EF'
+	option ip '192.168.2.103'
+	option leasetime 'infinite'
+
+config host
+	option name 'Predator'
+	list mac '34:E1:2D:4B:3A:07'
+	option ip '192.168.2.104'
+	option leasetime 'infinite'
+
+config host
+	option name 'Sara-Note10'
+	list mac '04:E5:98:62:04:13'
+	option ip '192.168.2.105'
+	option leasetime 'infinite'
+
+config host
+	option name 'Lenovo'
+	list mac 'B0:FC:36:29:5A:FF'
+	option ip '192.168.2.106'
+	option leasetime 'infinite'
+
+config host
+	option name 'Ziad-A55'
+	list mac '78:B6:FE:40:59:2F'
+	option ip '192.168.2.107'
+	option leasetime 'infinite'
+
+config host
+	option name 'Amira-IPhone'
+	list mac '90:A2:5B:0C:B3:BD'
+	option ip '192.168.2.108'
+	option leasetime 'infinite'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'nordvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'nordvpn.net'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'expressvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'expressvpn.xyz'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'surfshark.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'protonvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'protonvpn.ch'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'proton.me'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'cyberghostvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'privateinternetaccess.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'mullvad.net'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'ipvanish.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'tunnelbear.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'hotspotshield.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'windscribe.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'api.windscribe.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'cloudflareclient.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'psiphon.ca'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'psiphon3.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'betternet.co'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'hola.org'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'hide.me'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'vyprvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'goldenfrog.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'atlasvpn.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'cloudflarewarp.com'
+
+config ipset
+	list name 'vpn_block'
+	list name 'vpn_block6'
+	list domain 'torproject.org'
+

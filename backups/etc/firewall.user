@@ -1,0 +1,17 @@
+#!/bin/sh
+# ===================================================================
+# Custom Firewall Rules - Applied after firewall reload
+# ===================================================================
+
+# === DSCP Marking for Priority Devices ===
+# These must be in mangle_forward for CAKE diffserv4 to see them
+
+# IPv4 DSCP marking
+nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 34:e1:2d:4b:3a:07 ip dscp set cs4 comment "\"DSCP-Predator-Out\"" 2>/dev/null
+nft add rule inet fw4 mangle_forward oifname "br-lan" ip daddr 192.168.2.104 ip dscp set cs4 comment "\"DSCP-Predator-In\"" 2>/dev/null
+nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 78:b6:fe:40:59:2f ip dscp set cs4 comment "\"DSCP-Ziad-Out\"" 2>/dev/null
+nft add rule inet fw4 mangle_forward oifname "br-lan" ip daddr 192.168.2.107 ip dscp set cs4 comment "\"DSCP-Ziad-In\"" 2>/dev/null
+
+# IPv6 DSCP marking (same priority devices)
+nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 34:e1:2d:4b:3a:07 ip6 dscp set cs4 comment "\"DSCP6-Predator-Out\"" 2>/dev/null
+nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 78:b6:fe:40:59:2f ip6 dscp set cs4 comment "\"DSCP6-Ziad-Out\"" 2>/dev/null

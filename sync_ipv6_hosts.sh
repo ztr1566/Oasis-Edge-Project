@@ -1,11 +1,12 @@
 #!/bin/sh
 # ==============================================================================
-# IPv6 SLAAC Hostname Sync Script
+# IPv6 SLAAC Hostname Sync Script (Enhanced)
 # ==============================================================================
-# Maps IPv6 neighbor cache entries to hostnames by cross-referencing
-# MAC addresses with DHCPv4 lease names. Only maps global-scope (GUA)
-# addresses, skipping link-local (fe80::) and deprecated addresses.
-# Runs via cron every 2 minutes: */2 * * * * /root/sync_ipv6_hosts.sh
+# Maps ALL IPv6 neighbor cache entries to hostnames by cross-referencing
+# MAC addresses with DHCPv4 lease names. Maps all global-scope (GUA)
+# addresses per device (not just shortest) to ensure AdGuard Home can
+# identify queries from any IPv6 address including privacy extensions.
+# Runs via cron every 1 minute: * * * * * /root/sync_ipv6_hosts.sh
 # ==============================================================================
 
 TMP_FILE="/tmp/hosts/ipv6_slaac.tmp"
@@ -16,13 +17,13 @@ mkdir -p /tmp/hosts
 
 > "$TMP_FILE"
 
-# Parse IPv6 neighbor cache — only REACHABLE/STALE entries with global scope
+# Parse ALL IPv6 neighbor entries (REACHABLE, STALE, DELAY, PROBE)
 ip -6 neigh show dev br-lan | grep lladdr | while read -r IP _ MAC _; do
     [ -z "$MAC" ] && continue
 
-    # Skip link-local addresses (fe80::) — not useful for DNS resolution
+    # Skip link-local addresses (fe80::) and multicast (ff00::)
     case "$IP" in
-        fe80:*|fd*) continue ;;
+        fe80:*|ff*) continue ;;
     esac
 
     # Find hostname in IPv4 DHCP leases matching this MAC
@@ -33,11 +34,10 @@ ip -6 neigh show dev br-lan | grep lladdr | while read -r IP _ MAC _; do
     fi
 done
 
-# Deduplicate: keep only the shortest IPv6 address per hostname
-# Shorter addresses (e.g., ::100) are typically stable EUI-64/SLAAC addresses,
-# while longer ones (e.g., ::b4bc:49f1:6461:5df6) are privacy extensions.
-awk '!seen[$2]++ { print }' "$TMP_FILE" | sort > "${TMP_FILE}.dedup"
-mv "${TMP_FILE}.dedup" "$TMP_FILE"
+# Keep ALL addresses per hostname (not just shortest)
+# This ensures AGH can identify queries from any privacy extension address
+sort -u "$TMP_FILE" > "${TMP_FILE}.sorted"
+mv "${TMP_FILE}.sorted" "$TMP_FILE"
 
 # Only reload dnsmasq if the file actually changed
 if ! cmp -s "$TMP_FILE" "$FINAL_FILE"; then

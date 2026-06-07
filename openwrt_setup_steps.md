@@ -53,57 +53,6 @@ It is designed to be highly educational. In addition to the copy-paste commands,
 
 ---
 
-## 🔌 Phase 1.5: Upstream ISP Router Configuration (Bridge & Access Point Modes)
-
-To ensure OpenWrt handles all traffic shaping, security layers, and DNS encryption cleanly without double-NAT interference, your regular ISP router must be configured correctly. While these steps target the **TP-Link Archer VR600 V3** (VDSL/ADSL gateway), they apply universally to all standard ISP routers.
-
-### Option A: Bridge Mode (Recommended for Double-NAT Elimination)
-This disables the routing and DHCP capabilities of the ISP router, turning it into a pure transparent modem. OpenWrt will establish the PPPoE connection and receive the public IP address directly.
-
-1.  **Access the ISP Router GUI:**
-    *   Connect your computer directly to one of the VR600 V3's LAN ports (unconnected from OpenWrt).
-    *   Open your browser and navigate to `http://192.168.1.1` and log in.
-2.  **Delete the Default WAN Profile:**
-    *   Navigate to **Advanced** (top tab) ➔ **Network** ➔ **WAN Settings** (left menu).
-    *   Select the existing internet profile (PPPoE or Dynamic IP) and click **Delete**.
-3.  **Create a Transparent Bridge Profile:**
-    *   Click **Add** to create a new profile.
-    *   **DSL Link Type:** Select `VDSL` or `ADSL` based on your physical broadband connection.
-    *   **VLAN ID:** Ensure **Enable VLAN ID** is **Unchecked** (Disabled). Do **not** enable VLAN tagging (such as VLAN 50 or 51), as doing so is not needed and will prevent the PPPoE connection from handshaking successfully.
-    *   **Connection Type:** Select **Bridge** (or **Bridge Mode**).
-    *   Click **Save** or **Apply**.
-4.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **uncheck** the **Enable** checkbox under DHCP Server to turn it off. Click **Save**. *This ensures the OpenWrt Orange Pi handles all local IP addresses, DHCP leases, and filtering.*
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **uncheck** **IGMP Snooping** (disable it) to prevent the VR600 V3 from filtering or blocking multicast packets. Click **Save**.
-    *   **Keep Wi-Fi Enabled:** Do **not** disable the Wi-Fi. Ensure the 2.4 GHz and 5 GHz wireless networks are enabled and active on the VR600 V3. Since the wireless interface is bridged internally to the LAN switch, wireless clients will connect to the VR600's Wi-Fi but will receive their IP addresses, DNS resolution, and secure routing directly from the OpenWrt Orange Pi!
-5.  **Cabling:** Connect an Ethernet cable from any **LAN** port of the bridged VR600 V3 to the physical LAN port of the OpenWrt router (`eth0`/`br-lan`).
-
----
-
-### Option B: Repurposed Downstream Access Point (AP Mode Only)
-If you want to reuse your VR600 V3's powerful Wi-Fi antennas to expand wireless coverage behind your OpenWrt gateway, configure it purely as a downstream Wi-Fi Access Point.
-
-> [!IMPORTANT]
-> **Division of Labor:** In this setup, the VR600 V3 is used **exclusively to provide Wi-Fi coverage for wireless clients**. All network routing, DNS filtering/resolution (via AdGuard Home), DHCP IP leasing, firewall parameters, and optimization layers are hosted and executed entirely by your central **Orange Pi (OpenWrt) gateway**.
-
-1.  **Access settings:** Connect your computer directly to the VR600 V3 (disconnected from OpenWrt) and log in to `http://192.168.1.1`.
-2.  **Change local IP address:**
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
-    *   Change the IP address to a static address inside the OpenWrt subnet but outside the dynamic pool range (e.g., set to `192.168.2.2`).
-    *   Click **Save** and allow the device to reboot. (You will access its interface at `http://192.168.2.2` in the future).
-3.  **Disable DHCP Server & IGMP Snooping:**
-    *   Log in to `http://192.168.2.2`.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server**.
-    *   **Uncheck** **Enable** under DHCP Server to turn it off completely. Click **Save**.
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**.
-    *   **Uncheck** **IGMP Snooping** (disable it) so that the AP does not filter out or block multicast discovery packets (e.g., Chromecast/mDNS sweeps), allowing OpenWrt's bridge to manage multicast routing cleanly. Click **Save**.
-4.  **Connect LAN-to-LAN:**
-    *   Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3.
-    > [!WARNING]
-    > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN connection, you bypass the VR600's internal routing stack and NAT, merging all wireless clients directly into OpenWrt's subnet and forwarding all their DNS queries to your local AdGuard Home resolver.
-
----
-
 ## 🌐 Phase 2: Dual-Stack Network Interfaces Setup
 
 We will configure the network interfaces: LAN static IP, WAN PPPoE connection, and a secondary Modem access route.
@@ -193,7 +142,7 @@ We will set up the Cloudflare WARP tunnel (`wg0`) for IPv6 outbounds and the Wir
 
     config wireguard_wg0 'wg0_peer'
             option interface 'wg0'
-            option public_key 'YOUR_CLOUDFLARE_WARP_PUBLIC_KEY' # Always 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=' for Cloudflare WARP (universal and non-secret)
+            option public_key 'bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
             option endpoint_host '188.114.97.170'
             option endpoint_port '500'
             option route_allowed_ips '1'
@@ -444,37 +393,23 @@ We will deploy firewall filters and traffic control rules to throttle and disrup
 
 ## 🎛️ Phase 6: SQM Cake & Kernel Performance Tuning
 
-We will install the SQM traffic shaping modules, configure SQM piece_of_cake limits based on 90% of your actual tested line speeds, and tune TCP kernel parameters to eliminate bufferbloat and enable TCP Fast Open.
+We will configure SQM piece_of_cake and tune the TCP kernel parameters to eliminate bufferbloat and enable TCP Fast Open.
 
-1.  **Install SQM Packages (CLI):**
-    Since SQM is not a built-in feature in vanilla OpenWrt, you must install the traffic shaper modules and its Web GUI application manually:
-    ```bash
-    # Update package indexes and install SQM shaper modules and its Web GUI
-    apk update
-    apk add sqm-scripts sqm-scripts-extra luci-app-sqm
-    ```
-
-2.  **Configure SQM Cake:**
-    Open `/etc/config/sqm` and configure the queue settings. Replace `YOUR_DOWNLOAD_SPEED_KBIT` and `YOUR_UPLOAD_SPEED_KBIT` with **90% of your actual tested speeds** (e.g. measured via Speedtest). Do not use hardcoded values, as every internet subscription has different speeds.
-    
-    *   **Calculation Formula:** `Actual Speed in Mbps * 1000 * 0.9 = SQM Value`
-        *   *Download Example:* If your actual tested speed is `60 Mbps`, calculate `60 * 1000 * 0.9 = 54000` Kbit/s.
-        *   *Upload Example:* If your actual tested speed is `10 Mbps`, calculate `10 * 1000 * 0.9 = 9000` Kbit/s.
-
-    Configure the settings as follows:
+1.  **Configure SQM Cake:**
+    Configure `/etc/config/sqm`:
     ```ini
     config queue 'eth1'
             option enabled '1'
             option interface 'pppoe-WAN'
-            option download 'YOUR_DOWNLOAD_SPEED_KBIT'
-            option upload 'YOUR_UPLOAD_SPEED_KBIT'
+            option download '51000'
+            option upload '8700'
             option qdisc 'cake'
             option script 'piece_of_cake.qos'
             option linklayer 'ethernet'
             option use_mq '0'
             option debug_logging '0'
             option verbosity '5'
-            option overhead '30'
+            option overhead '34'
             option qdisc_advanced '1'
             option squash_dscp '1'
             option squash_ingress '1'
@@ -502,13 +437,13 @@ We will install the SQM traffic shaping modules, configure SQM piece_of_cake lim
     > In many home networks, your upload speed (9.2 Mbps) is much slower than your download speed (54 Mbps). When downloading a large file, your PC must constantly upload "Acknowledgement" (ACK) packets to confirm it received the data.
     > If these ACK packets saturate your tiny 9.2 Mbps upload queue, they will get delayed. This forces the sending server to slow down its downloads, thinking your connection is congested. The `ack-filter` intelligently drops older, redundant ACK packets in the queue, keeping your upload pipe completely clear and maximizing your download speeds!
 
-3.  **Optimize `/etc/sysctl.conf`:**
+2.  **Optimize `/etc/sysctl.conf`:**
     Edit `/etc/sysctl.conf` to configure BBR congestion control, TCP Fast Open, and large UDP network buffers:
     ```ini
     net.netfilter.nf_conntrack_tcp_timeout_established = 600
     net.ipv6.conf.all.forwarding=1
     net.ipv6.conf.default.forwarding=1
- 
+
     # Latency & Performance Tuning
     net.core.netdev_max_backlog = 5000
     net.ipv4.tcp_fastopen = 3
@@ -517,12 +452,12 @@ We will install the SQM traffic shaping modules, configure SQM piece_of_cake lim
     > [!TIP]
     > **Why we set `net.ipv4.tcp_fastopen = 3`:**
     > Enables TCP Fast Open (TFO) for both incoming and outgoing connections. TFO allows data to be sent during the initial TCP 3-way handshake, saving a full round-trip time (RTT) for repeated connections, making web requests feel much snappier.
- 
+
     > [!TIP]
     > **Why we set `net.ipv4.tcp_slow_start_after_idle = 0`:**
     > Disables slow-start restart after a connection goes idle. Normally, TCP resets its congestion window size if a connection is idle, forcing it to slowly ramp up speed again. Disabling this ensures that active persistent connections instantly transmit at full speed when resuming activity.
- 
-4.  **Reload Sysctl Settings:**
+
+3.  **Reload Sysctl Settings:**
     ```bash
     sysctl -p
     ```
@@ -593,20 +528,9 @@ We will tune the Router Advertisements and neighbor cache timeouts to let wirele
 
 ## 🔄 Phase 8: Dynamic DNS Setup & Cleanup
 
-We will install the non-default Dynamic DNS service packages, configure DuckDNS in UCI, bypass local caches to prevent synchronization failures, and prune system backup residues.
+We will configure DuckDNS in UCI, configure the `dns_server` lookup bypass to avoid cache mismatch, and prune system files.
 
-1.  **Install Dynamic DNS Packages (CLI):**
-    Since Dynamic DNS is not a built-in service in vanilla OpenWrt, you must install the dynamic DNS scripts and its LuCI application extension manually:
-    ```bash
-    # Update package indexes and install DDNS utilities and Web GUI
-    apk update
-    apk add ddns-scripts ddns-scripts-services luci-app-ddns
-    ```
-    
-    > [!NOTE]
-    > **LuCI 'Services' Menu Visibility:** The **Services** tab in the main LuCI menu bar is hidden by default in fresh installations. It will automatically appear only after manually installing a service package (such as `luci-app-ddns`). After running the installation commands above, simply refresh your web browser or log back into LuCI to see the new **Services** ➔ **Dynamic DNS** menu.
-
-2.  **Configure DDNS in `/etc/config/ddns`:**
+1.  **Configure DDNS in `/etc/config/ddns`:**
     Ensure `dns_server` is explicitly pointed to Cloudflare (`1.1.1.1`) to bypass local caches (domain name masked for privacy):
     ```ini
     config service 'myddns_ipv4'
@@ -637,7 +561,7 @@ We will install the non-default Dynamic DNS service packages, configure DuckDNS 
     > However, because we optimized AdGuard Home to cache DNS records for a minimum of **1 hour**, any query sent by the DDNS client through the local resolver would retrieve the **old cached IP** for up to an hour. The DDNS client would think the update failed, throw system warnings, and spam DuckDNS with duplicate update requests every 10 minutes.
     > Pointing the DDNS `dns_server` parameter directly to `1.1.1.1` forces it to bypass the local AdGuard cache and ask Cloudflare directly. Since Cloudflare respects DuckDNS's 60-second TTL, the router detects the new IP instantly, updates the LuCI GUI status immediately, and eliminates redundant update requests!
 
-3.  **Prune Configuration Leftovers & Disable Unused package triggers:**
+2.  **Prune Configuration Leftovers & Disable Unused package triggers:**
     ```bash
     # Remove backup and package leftovers
     rm -f /etc/config/dhcp.bak /etc/config/dhcp.apk-new /etc/adguardhome/adguardhome.yaml.bak /etc/firewall.user.bak

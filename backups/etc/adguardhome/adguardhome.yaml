@@ -1,0 +1,539 @@
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  doh:
+    routes:
+      - GET /dns-query
+      - POST /dns-query
+      - GET /dns-query/{ClientID}
+      - POST /dns-query/{ClientID}
+    insecure_enabled: false
+  address: 192.168.2.1:8080
+  session_ttl: 30d
+users:
+  - name: admin
+    password: $2a$10$lXkttgCQpUTDpgXwo64jJ.0lICt.pEdvYpeqp7vEoNLZHd.ls/6A6
+auth_attempts: 5
+block_auth_min: 15
+http_proxy: ""
+language: en
+theme: auto
+dns:
+  bind_hosts:
+    - '::'
+  port: 53
+  anonymize_client_ip: false
+  ratelimit: 0
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  ratelimit_whitelist:
+    - 127.0.0.1
+    - 192.168.2.1
+  refuse_any: true
+  upstream_dns:
+    - quic://a14f4d.dns.nextdns.io
+    - quic://unfiltered.adguard-dns.com
+    - '[/lan/]127.0.0.1:5353'
+  upstream_dns_file: ""
+  bootstrap_dns:
+    - '2a07:a8c0::'
+    - 1.1.1.1
+    - 8.8.8.8
+  fallback_dns: []
+  upstream_mode: parallel
+  fastest_timeout: 150ms
+  allowed_clients: []
+  disallowed_clients: []
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+  cache_enabled: true
+  cache_size: 104857600
+  cache_ttl_min: 3600
+  cache_ttl_max: 0
+  cache_optimistic: true
+  cache_optimistic_answer_ttl: 10s
+  cache_optimistic_max_age: 6h
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: true
+  edns_client_subnet:
+    custom_ip: ""
+    enabled: true
+    use_custom: false
+  max_goroutines: 0
+  handle_ddr: true
+  ipset: []
+  ipset_file: ""
+  bootstrap_prefer_ipv6: false
+  upstream_timeout: 3s
+  private_networks:
+    - 127.0.0.0/8
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+    - 169.254.0.0/16
+    - ::1/128
+    - fc00::/7
+    - fe80::/10
+    - 2a09:7373::/64
+  use_private_ptr_resolvers: true
+  local_ptr_upstreams:
+    - 127.0.0.1:5353
+  use_dns64: false
+  dns64_prefixes: []
+  serve_http3: true
+  use_http3_upstreams: true
+  serve_plain_dns: true
+  hostsfile_enabled: true
+  pending_requests:
+    enabled: true
+tls:
+  enabled: true
+  server_name: 192.168.2.1
+  force_https: false
+  port_https: 8443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: /etc/adguardhome/certs/fullchain.crt
+  private_key_path: /etc/adguardhome/certs/server.key
+  strict_sni_check: false
+querylog:
+  dir_path: ""
+  ignored: []
+  interval: 1d
+  size_memory: 500
+  enabled: true
+  ignored_enabled: false
+  file_enabled: false
+statistics:
+  dir_path: ""
+  ignored: []
+  interval: 1d
+  enabled: true
+  ignored_enabled: false
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_48.txt
+    name: HaGeZi's Pro Blocklist
+    id: 1780793074
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_50.txt
+    name: uBlock₀ filters – Badware risks
+    id: 1780793075
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_11.txt
+    name: Malicious URL Blocklist (URLHaus)
+    id: 1780793076
+  - enabled: true
+    url: https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/nsfw.txt
+    name: HaGiZi's NSFW
+    id: 1780793077
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_39.txt
+    name: Dandelion Sprout's Anti Push Notifications
+    id: 1780793078
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_47.txt
+    name: HaGeZi's Gambling Blocklist
+    id: 1780793079
+whitelist_filters: []
+user_rules:
+  - '@@||*.farlad.com'
+  - '||nordvpn.com^'
+  - '||nordvpn.net^'
+  - '||expressvpn.com^'
+  - '||expressvpn.xyz^'
+  - '||surfshark.com^'
+  - '||protonvpn.com^'
+  - '||protonvpn.ch^'
+  - '||proton.me^'
+  - '||cyberghostvpn.com^'
+  - '||privateinternetaccess.com^'
+  - '||mullvad.net^'
+  - '||ipvanish.com^'
+  - '||tunnelbear.com^'
+  - '||hotspotshield.com^'
+  - '||windscribe.com^'
+  - '||cloudflareclient.com^'
+  - '||cloudflarewarp.com^'
+  - '||psiphon.ca^'
+  - '||psiphon3.com^'
+  - '||betternet.co^'
+  - '||hola.org^'
+  - '||hide.me^'
+  - '||vyprvpn.com^'
+  - '||goldenfrog.com^'
+  - '||atlasvpn.com^'
+  - '||torproject.org^'
+  - '||1.1.1.1^'
+  - '||warp.plus^'
+  - '||ultrasurf.us^'
+  - '||lantern.io^'
+  - '||getlantern.org^'
+  - '||v2ray.com^'
+  - '||shadowsocks.org^'
+  - '||lichess.org^$dnstype=AAAA'
+  - '||lichess1.org^$dnstype=AAAA'
+  - '||discord.com^$dnstype=AAAA'
+  - '||discord.gg^$dnstype=AAAA'
+  - '||discordapp.com^$dnstype=AAAA'
+  - '||discordapp.net^$dnstype=AAAA'
+  - '||steampowered.com^$dnstype=AAAA'
+  - '||steamcommunity.com^$dnstype=AAAA'
+  - '||steamstatic.com^$dnstype=AAAA'
+  - '||epicgames.com^$dnstype=AAAA'
+  - '||riotgames.com^$dnstype=AAAA'
+  - '||leagueoflegends.com^$dnstype=AAAA'
+  - '||ea.com^$dnstype=AAAA'
+  - '||origin.com^$dnstype=AAAA'
+  - '||ubisoft.com^$dnstype=AAAA'
+  - '||battle.net^$dnstype=AAAA'
+dhcp:
+  enabled: false
+  interface_name: ""
+  local_domain_name: lan
+  dhcpv4:
+    gateway_ip: ""
+    subnet_mask: ""
+    range_start: ""
+    range_end: ""
+    lease_duration: 86400
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: ""
+    lease_duration: 86400
+    ra_slaac_only: false
+    ra_allow_slaac: false
+filtering:
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_services:
+    schedule:
+      time_zone: Africa/Cairo
+    ids: []
+  protection_disabled_until: null
+  safe_search:
+    enabled: true
+    bing: true
+    duckduckgo: true
+    ecosia: true
+    google: false
+    pixabay: true
+    yandex: true
+    youtube: false
+  blocking_mode: nxdomain
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
+  rewrites:
+    - domain: openwrt.lan
+      answer: 192.168.2.1
+      enabled: true
+    - domain: agh.lan
+      answer: 192.168.2.1
+      enabled: true
+  safe_fs_patterns:
+    - /var/lib/adguardhome/userfilters/*
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  filters_update_interval: 12
+  blocked_response_ttl: 180
+  filtering_enabled: true
+  rewrites_enabled: true
+  parental_enabled: false
+  safebrowsing_enabled: false
+  protection_enabled: true
+clients:
+  runtime_sources:
+    whois: true
+    arp: true
+    rdns: true
+    dhcp: true
+    hosts: true
+  persistent:
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Amira-IPhone
+      ids:
+        - 192.168.2.108
+        - 2a09:7373::cd57:f89e:33ea:9532
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7ceb-8aea-2b1ff0df38fd
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Ghada-S9
+      ids:
+        - 192.168.2.101
+        - 2a09:7373::4923:cd56:fcee:46e8
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7c60-a759-ba0822cef85f
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Honor-Pad-X7
+      ids:
+        - 192.168.2.103
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7c8c-b26c-44c003285895
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Lenovo
+      ids:
+        - 192.168.2.106
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7cc4-bfc3-665d0322841f
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Predator
+      ids:
+        - 192.168.2.104
+        - 2a09:7373::b4bc:49f1:6461:5df6
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7ca2-b937-605981c8984d
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Redmi-Note8-Pro
+      ids:
+        - 192.168.2.102
+        - 2a09:7373::5f5:b47b:48dd:2232
+        - 2a09:7373::57c8:1f65:89e5:1aa4
+        - 2a09:7373::e27b:a46b:a84e:68c9
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7c71-9956-f935824b9c2f
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Samsung-TV
+      ids:
+        - 192.168.2.100
+        - 2a09:7373::6c27:913b:16b1:19a5
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7c2e-b5c2-4df461b5197f
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Sara-Note10
+      ids:
+        - 192.168.2.105
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7cb3-be42-9e316e0da160
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+    - safe_search:
+        enabled: false
+        bing: false
+        duckduckgo: false
+        ecosia: false
+        google: false
+        pixabay: false
+        yandex: false
+        youtube: false
+      blocked_services:
+        schedule:
+          time_zone: UTC
+        ids: []
+      name: Ziad-A55
+      ids:
+        - 192.168.2.107
+        - 2a09:7373::4311:862b:7189:bbeb
+      tags: []
+      upstreams: []
+      uid: 019e99d9-2120-7cdd-87d8-d4f91411dfc6
+      upstreams_cache_size: 0
+      upstreams_cache_enabled: false
+      use_global_settings: true
+      filtering_enabled: false
+      parental_enabled: false
+      safebrowsing_enabled: false
+      use_global_blocked_services: true
+      ignore_querylog: false
+      ignore_statistics: false
+log:
+  enabled: false
+  file: ""
+  max_backups: 0
+  max_size: 100
+  max_age: 3
+  compress: false
+  local_time: false
+  verbose: false
+os:
+  group: ""
+  user: ""
+  rlimit_nofile: 0
+schema_version: 34

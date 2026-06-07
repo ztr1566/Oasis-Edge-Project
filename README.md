@@ -28,48 +28,6 @@ In Egypt, mainstream Internet Service Providers (ISPs) operate exclusively on le
 
 ---
 
-## 🔌 1.5. Upstream ISP Gateway Integration (TP-Link VR600 V3 & General ISP Routers)
-
-To prevent Double-NAT bottlenecks (routing latency, NAT table exhaustion, and port-forwarding failures), your upstream physical ISP gateway should be configured in either **Bridge Mode** (to act as a transparent modem) or repurposed as a **Downstream Access Point** (AP) behind the OpenWrt gateway. 
-
-While these steps focus on the TP-Link Archer **VR600 V3** (VDSL/ADSL modem router), they apply conceptually to almost all mainstream ISP gateway units.
-
-### 🌐 Mode A: Transparent Bridge Mode (Recommended)
-This converts the ISP router into a transparent DSL/Fiber-to-Ethernet media converter (modem). OpenWrt will handle all routing, IP allocation (DHCP), and firewall duties, receiving the public WAN IP directly.
-
-1.  **Isolate Devices:** Disconnect the Ethernet cable between OpenWrt and your ISP router to avoid IP address conflicts during configuration.
-2.  **Access Settings:** Connect a computer directly to a LAN port on the VR600 V3 and log in to its web UI (typically `http://192.168.1.1`).
-3.  **Delete Default WAN Profile:** Navigate to **Advanced** ➔ **Network** ➔ **WAN Settings** (or Internet), select the default dynamic or PPPoE connection profile, and **Delete** it.
-4.  **Create Bridge Connection Profile:**
-    *   Click **Add** or **Create Connection**.
-    *   **DSL Link Type:** Choose `VDSL` or `ADSL` according to your physical DSL connection.
-    *   **VLAN ID:** Ensure **Enable VLAN ID** is **Unchecked** (Disabled). Do **not** use VLAN tagging (such as VLAN 50 or 51), as enabling VLAN tagging is not required and will prevent the PPPoE connection from establishing successfully.
-    *   **Connection Type:** Set to **Bridge** (or **Bridge Mode**).
-    *   Save or apply settings.
-5.  **Disable DHCP, IGMP Snooping, & Keep Wi-Fi Active:**
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server completely. *This ensures that the OpenWrt Orange Pi handles all local IP addresses, DNS, and filtering.*
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it) to prevent the VR600 V3 from filtering or blocking multicast discovery packets (e.g. Chromecast, mDNS sweeps).
-    *   **Keep Wi-Fi Enabled:** Do **not** disable the Wi-Fi radios. Ensure the 2.4 GHz and 5 GHz wireless networks remain enabled and configured on the VR600 V3. Since the VR600's wireless interfaces are internally bridged to its local LAN switch, all Wi-Fi clients will connect through the VR600's antennas but will receive their IP leases, DNS resolution (AdGuard Home), secure blocking, and traffic shaping directly from the central OpenWrt Orange Pi!
-6.  **Physical Cabling:** Connect an Ethernet cable from a **LAN** port of the bridged VR600 V3 to the physical network bridge (`eth0` / `br-lan`) of the OpenWrt router. OpenWrt will now handle the PPPoE session cleanly.
-
-### 📡 Mode B: Downstream Access Point (AP Mode Only)
-If you want to reuse the Wi-Fi antennas of your VR600 V3 (or general ISP router) to expand wireless coverage behind your OpenWrt gateway, configure it purely as an Access Point. 
-
-> [!IMPORTANT]
-> **Division of Labor:** In this configuration, the VR600 V3 is utilized **exclusively to establish the physical Wi-Fi radio connection for wireless clients**. All network routing, DNS resolution, DHCP dynamic IP allocations, traffic shaping, and firewall security blocks are executed entirely by the central **Orange Pi (OpenWrt) gateway**.
-
-1.  **Access Settings:** Connect your computer directly to the VR600 V3 LAN port and log in to `http://192.168.1.1`.
-2.  **Change local IP address:** Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings**. Set the local IP address to a static value inside the OpenWrt subnet but outside the dynamic DHCP pool. 
-    *   *Example:* Set it to `192.168.2.2` (Subnet mask `255.255.255.0`). Save the settings and let the router reboot. (You will access its interface at `http://192.168.2.2` in the future).
-3.  **Disable DHCP Server & IGMP Snooping:** 
-    *   Navigate to **Advanced** ➔ **Network** ➔ **DHCP Server** and **Uncheck** the DHCP server. *This ensures OpenWrt remains the only local IP distributor.*
-    *   Navigate to **Advanced** ➔ **Network** ➔ **LAN Settings** and **Uncheck** **IGMP Snooping** (Disable it) so that the AP does not filter out or block multicast discovery packets (e.g., Chromecast/mDNS sweeps), allowing OpenWrt's bridge to manage multicast routing cleanly.
-4.  **Cabling (LAN-to-LAN):** Connect an Ethernet cable from one of the **LAN** ports on OpenWrt to one of the **LAN** ports of the VR600 V3. 
-    > [!WARNING]
-    > Do **not** connect the cable to the WAN port of the VR600 V3. By using a LAN-to-LAN link, you bypass its internal firewall and NAT, ensuring all wireless clients cleanly join the OpenWrt `192.168.2.x` network and route their DNS requests to your secure AdGuard Home portal.
-
----
-
 ## 🌐 2. Dual-Stack Network & Routing Architecture
 
 The router implements an advanced, asymmetric dual-stack routing design designed to maximize privacy, isolate local traffic, and route IPv6 securely.
@@ -214,9 +172,9 @@ Since sophisticated VPN protocols can run over HTTPS port 443 to mimic secure we
 
 To eliminate bufferbloat and guarantee low-latency gaming and VoIP under heavy network load, SQM Cake is deployed on the raw WAN.
 
-*   **Ingress shaping:** `54,000 Kbit` (down) | **Egress shaping:** `9,200 Kbit` (up)
+*   **Ingress shaping:** `51,000 Kbit` (down) | **Egress shaping:** `8,700 Kbit` (up)
 *   **Synergy with TCP BBR:** The egress queue is optimized with `ECN` enabled (`ingress_ecn ECN`, `egress_ecn ECN`), working in perfect synergy with the kernel's BBR congestion control algorithm (`tcp_congestion_control=bbr`) to signal congestion via packets rather than drops.
-*   **ACK Filtering:** Upload queue utilizes `ack-filter` (`eqdisc_opts 'ack-filter'`), which drops redundant TCP ACK packets on your 9.2 Mbps upload, preventing it from bottlenecking during high-speed downloads.
+*   **ACK Filtering:** Upload queue utilizes `ack-filter` (`eqdisc_opts 'ack-filter'`), which drops redundant TCP ACK packets on your 8.7 Mbps upload, preventing it from bottlenecking during high-speed downloads.
 *   **Flow Offloading Disabled:** Software and Hardware flow offloading are disabled (`0`) in `/etc/config/firewall` to prevent packets from bypassing the Linux qdisc layer, keeping SQM Cake active.
 
 ---
@@ -276,5 +234,60 @@ To prevent lingering active shells on admin machines:
     config dropbear
             option IdleTimeout '300'
     ```
+
+---
+
+## 🔄 9. Project OasisEdge: Zero-Downtime Firmware Upgrade Guide
+
+### ⚠️ Why Stock OpenWrt Upgrades Break Custom Settings
+When you perform an OpenWrt firmware upgrade (Sysupgrade), OpenWrt does the following:
+1.  **Wipes Installed Packages:** The base OS image is re-written. Any packages installed via the package manager (like `dnsmasq-full`, `luci-app-sqm`, `luci-app-wireguard`, or `luci-app-ddns`) are **completely deleted**, reverting the router back to standard lightweight defaults.
+2.  **Preserves Config Files Only:** Sysupgrade reads `/etc/sysupgrade.conf` and preserves those configurations (e.g. `/etc/config/*`, `/etc/adguardhome/adguardhome.yaml`).
+3.  **The Resulting Break:** When the router boots up after the upgrade, it has your advanced configuration files, but the **underlying binaries are missing**. Dnsmasq-full is gone (so NFTsets are ignored), WireGuard interfaces fail to load, SQM Cake QoS scripts disappear, and the AdGuard Home binary is wiped out from the operating system, leaving the network broken.
+
+### 🛡️ The Bulletproof OasisEdge Upgrade Strategy
+To upgrade the firmware to a newer stable version of OpenWrt with zero issues, follow this step-by-step disaster recovery checklist:
+
+#### Step 1: Tell Sysupgrade to Preserve Custom Files
+OpenWrt only backs up standard system configs by default. We must tell it to preserve custom hotplug scripts and execution profiles.
+*   Edit `/etc/sysupgrade.conf` and append the following paths:
+    ```text
+    /etc/hotplug.d/iface/99-wg6-route
+    /etc/firewall.user
+    /etc/dropbear/authorized_keys
+    /home/ztr/oasis_restore.sh
+    ```
+*   Save the file.
+
+#### Step 2: Generate a Pre-Upgrade Local Backup
+Before flashing, generate a local archive of your entire working environment and save it to your computer:
+```bash
+# Generate the config backup archive
+sysupgrade -b /tmp/OasisEdge_Backup.tar.gz
+```
+Transfer the generated `OasisEdge_Backup.tar.gz` from `/tmp` to your PC using an SFTP client or SCP.
+
+#### Step 3: Flash the New Firmware (Keep Settings)
+*   **LuCI Method:** Navigate to **System** ➔ **Backup / Flash Firmware**. Scroll to **Flash new firmware image**, select your new stable sysupgrade image, and ensure **Keep settings and retain the current configuration** is **Checked**. Click **Upload** and proceed.
+*   **CLI Method:** Run sysupgrade directly:
+    ```bash
+    sysupgrade -v -k /tmp/new-openwrt-sysupgrade.bin
+    ```
+
+#### Step 4: Run the Post-Upgrade Restore Automation Script
+Once the router finishes flashing and reboots, standard network routing will be offline because the required packages are gone.
+1.  Establish an SSH session to the router (your SSH Keys are preserved because of Step 1).
+2.  Run the custom restore automation script stored in your home directory:
+    ```bash
+    /home/ztr/oasis_restore.sh
+    ```
+    This script will automatically:
+    *   Verify internet connection availability.
+    *   Pull the latest stable package repositories.
+    *   Cleanly swap out standard `dnsmasq` for `dnsmasq-full` without conflicts.
+    *   Re-install all required SQM Cake, WireGuard, DDNS, and Traffic Control packages.
+    *   Secure file execution permissions on custom scripts and keys.
+    *   Re-download and deploy the correct ARM64 AdGuard Home binary.
+    *   Restart all services to bring the router to **100% operation seamlessly!**
 
 🌐 *Your home dual-stack gateway is now officially codified and secured under the **Project OasisEdge** architecture!*
