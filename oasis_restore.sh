@@ -189,7 +189,7 @@ if [ -f /root/sync_ipv6_hosts.sh ]; then
 
     # Re-inject the cron job silently if missing (every 1 minute)
     if ! crontab -l 2>/dev/null | grep -q 'sync_ipv6_hosts.sh'; then
-        (crontab -l 2>/dev/null; echo '* * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
+        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
         echo "   ➔ Cron job for IPv6 SLAAC sync injected (every 1 min)."
     fi
 fi
@@ -199,7 +199,7 @@ if [ -f /root/sync_agh_ipv6_clients.sh ]; then
     echo "   ➔ AdGuardHome IPv6 sync script permissions restored."
 
     if ! crontab -l 2>/dev/null | grep -q 'sync_agh_ipv6_clients.sh'; then
-        (crontab -l 2>/dev/null; echo '* * * * * /root/sync_agh_ipv6_clients.sh >/dev/null 2>&1') | crontab -
+        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_agh_ipv6_clients.sh >/dev/null 2>&1') | crontab -
         echo "   ➔ Cron job for AGH IPv6 sync injected (every 1 min)."
     fi
 fi
