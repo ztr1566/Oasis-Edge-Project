@@ -260,8 +260,8 @@ clients:
     whois: true
     arp: true
     rdns: true
-    dhcp: true
-    hosts: true
+    dhcp: false
+    hosts: false
   persistent:
     - safe_search:
         enabled: false
