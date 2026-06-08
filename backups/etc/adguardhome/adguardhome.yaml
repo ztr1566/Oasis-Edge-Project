@@ -279,7 +279,6 @@ clients:
       name: Amira-IPhone
       ids:
         - 192.168.2.108
-        - 2a09:7373::cd57:f89e:33ea:9532
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7ceb-8aea-2b1ff0df38fd
@@ -308,7 +307,6 @@ clients:
       name: Ghada-S9
       ids:
         - 192.168.2.101
-        - 2a09:7373::4923:cd56:fcee:46e8
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7c60-a759-ba0822cef85f
@@ -393,7 +391,6 @@ clients:
       name: Predator
       ids:
         - 192.168.2.104
-        - 2a09:7373::b4bc:49f1:6461:5df6
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7ca2-b937-605981c8984d
@@ -422,9 +419,6 @@ clients:
       name: Redmi-Note8-Pro
       ids:
         - 192.168.2.102
-        - 2a09:7373::5f5:b47b:48dd:2232
-        - 2a09:7373::57c8:1f65:89e5:1aa4
-        - 2a09:7373::e27b:a46b:a84e:68c9
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7c71-9956-f935824b9c2f
@@ -453,7 +447,6 @@ clients:
       name: Samsung-TV
       ids:
         - 192.168.2.100
-        - 2a09:7373::6c27:913b:16b1:19a5
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7c2e-b5c2-4df461b5197f
@@ -510,7 +503,6 @@ clients:
       name: Ziad-A55
       ids:
         - 192.168.2.107
-        - 2a09:7373::4311:862b:7189:bbeb
       tags: []
       upstreams: []
       uid: 019e99d9-2120-7cdd-87d8-d4f91411dfc6
