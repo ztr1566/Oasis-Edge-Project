@@ -13,7 +13,7 @@ STATEDIR="/tmp/agh_ipv6_state.d"
 COOLDOWN_FILE="/tmp/agh_sync_cooldown"
 COOLDOWN=300  # 5 minutes between update cycles
 AGH="http://192.168.2.1:8080/control"
-AUTH="Authorization: Basic YOUR_AGH_AUTH_BASE64"
+AUTH="Authorization: Basic $(cat /etc/agh_auth 2>/dev/null)"
 
 # Prevent concurrent runs (with stale lock cleanup)
 if [ -f "$LOCKFILE" ]; then
