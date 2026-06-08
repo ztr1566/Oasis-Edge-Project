@@ -28,8 +28,8 @@ config dnsmasq
 
 config dhcp 'lan'
 	option interface 'lan'
-	option start '200'
-	option limit '51'
+	option start '110'
+	option limit '90'
 	option leasetime '12h'
 	option dhcpv4 'server'
 	list dhcp_option '6,192.168.2.1'
