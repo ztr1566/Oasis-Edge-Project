@@ -149,6 +149,8 @@ filters:
 whitelist_filters: []
 user_rules:
   - '@@||*.farlad.com'
+  - '||lichess.org^$dnstype=AAAA'
+  - '||lichess1.org^$dnstype=AAAA'
   - '||nordvpn.com^'
   - '||nordvpn.net^'
   - '||expressvpn.com^'
