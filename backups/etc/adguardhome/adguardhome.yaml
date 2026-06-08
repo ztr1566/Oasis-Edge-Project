@@ -33,7 +33,7 @@ dns:
   refuse_any: true
   upstream_dns:
     - quic://a14f4d.dns.nextdns.io
-    - quic://unfiltered.adguard-dns.com
+    - quic://p0.freedns.controld.com
     - '[/lan/]127.0.0.1:5353'
   upstream_dns_file: ""
   bootstrap_dns:
