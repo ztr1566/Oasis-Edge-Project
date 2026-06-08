@@ -57,6 +57,38 @@ fi
 if [ -f /etc/firewall.user ]; then
     chmod +x /etc/firewall.user
     echo "   ➔ Executable restored: /etc/firewall.user"
+
+    # Inject dynamic MAC whitelist sync if missing
+    if ! grep -q "Dynamic MAC Whitelist Sync" /etc/firewall.user; then
+        cat << 'EOF' >> /etc/firewall.user
+
+# ===================================================================
+# Dynamic MAC Whitelist Sync from DHCP Static Leases
+# ===================================================================
+# Clear the existing nftables allowed_macs set
+nft flush set inet fw4 allowed_macs 2>/dev/null
+
+# Read all MACs from dhcp.@host configurations and add them
+idx=0
+while true; do
+    sectype=$(uci -q get dhcp.@host[$idx])
+    [ -z "$sectype" ] && break
+    
+    mac=$(uci -q get dhcp.@host[$idx].mac)
+    if [ -n "$mac" ]; then
+        for m in $mac; do
+            m_lower=$(echo "$m" | tr 'A-Z' 'a-z')
+            nft add element inet fw4 allowed_macs { "$m_lower" } 2>/dev/null
+        done
+    fi
+    idx=$((idx + 1))
+done
+
+# Add infrastructure MACs (e.g. modems/gateways)
+nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54" } 2>/dev/null
+EOF
+        echo "   ➔ Dynamic MAC whitelist sync script injected into /etc/firewall.user"
+    fi
 fi
 
 if [ -f /etc/dropbear/authorized_keys ]; then
@@ -431,17 +463,6 @@ delete_firewall_rule "Block-Unauthorized-WARP"
 uci set firewall.allowed_macs=ipset
 uci set firewall.allowed_macs.name='allowed_macs'
 uci set firewall.allowed_macs.match='src_mac'
-uci add_list firewall.allowed_macs.entry='80:47:86:68:e3:3d'
-uci add_list firewall.allowed_macs.entry='24:18:1d:81:a7:f2'
-uci add_list firewall.allowed_macs.entry='92:4d:25:58:51:b2'
-uci add_list firewall.allowed_macs.entry='cc:62:00:38:98:ef'
-uci add_list firewall.allowed_macs.entry='34:e1:2d:4b:3a:07'
-uci add_list firewall.allowed_macs.entry='04:e5:98:62:04:13'
-uci add_list firewall.allowed_macs.entry='b0:fc:36:29:5a:ff'
-uci add_list firewall.allowed_macs.entry='78:b6:fe:40:59:2f'
-uci add_list firewall.allowed_macs.entry='90:a2:5b:0c:b3:bd'
-uci add_list firewall.allowed_macs.entry='e8:48:b8:13:fa:e6'
-uci add_list firewall.allowed_macs.entry='50:78:b3:a8:30:54'
 
 # Create Block-Unauthorized-WAN rule
 uci add firewall rule
