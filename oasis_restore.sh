@@ -168,6 +168,9 @@ uci add_list dhcp.lan.ra_dns='2a09:7373::1'
 # Sync RA lifetimes with DHCPv4 leasetime for consistency
 uci set dhcp.lan.ra_useleasetime='1'
 
+# Tune DHCPv4 lease time to 24 hours (reduces client renewal wakeups)
+uci set dhcp.lan.leasetime='24h'
+
 # Add DHCPv4 options for faster browsing (domain, broadcast, disable WPAD)
 uci add_list dhcp.lan.dhcp_option='15,lan'
 uci add_list dhcp.lan.dhcp_option='28,192.168.2.255'
@@ -179,6 +182,20 @@ uci -q delete network.globals.ula_prefix
 uci commit dhcp
 uci commit network
 echo "   ➔ IPv6: SLAAC enabled, stateful DHCPv6 disabled, RA timers synced."
+
+# Deploy battery-saving sysctl settings (reduce ARP and neighbor probe frequency)
+mkdir -p /etc/sysctl.d
+cat << 'EOF' > /etc/sysctl.d/90-battery-optimize.conf
+# Optimize ARP / Neighbor Cache probe timers to reduce multicast/unicast wakeups
+net.ipv4.neigh.br-lan.base_reachable_time_ms=120000
+net.ipv6.neigh.br-lan.base_reachable_time_ms=120000
+net.ipv4.neigh.br-lan.delay_first_probe_time=15
+net.ipv6.neigh.br-lan.delay_first_probe_time=15
+EOF
+sysctl -p /etc/sysctl.d/90-battery-optimize.conf >/dev/null 2>&1
+
+# Ensure sysctl config survives upgrades
+grep -q '/etc/sysctl.d/90-battery-optimize.conf' /etc/sysupgrade.conf || echo '/etc/sysctl.d/90-battery-optimize.conf' >> /etc/sysupgrade.conf
 
 # Ensure the IPv6 SLAAC auto-naming script is executable
 if [ -f /root/sync_ipv6_hosts.sh ]; then
