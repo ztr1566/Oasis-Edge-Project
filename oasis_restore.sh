@@ -150,14 +150,12 @@ uci set dhcp.lan.dhcpv6='disabled'
 # Enable SLAAC (A-flag) — clients auto-generate their own IPv6 address
 uci set dhcp.lan.ra_slaac='1'
 
-# Set O-flag only (stateless — DNS info via RA, no address assignment)
+# Clean ra_flags (Stateless SLAAC only, no DHCPv6 other-config query loop)
 uci -q delete dhcp.lan.ra_flags
-uci add_list dhcp.lan.ra_flags='other-config'
 
-# RA parameters — tuned for stable operation and battery life
-# Values synced from live production config (2026-06-07)
-uci set dhcp.lan.ra_maxinterval='900'
-uci set dhcp.lan.ra_mininterval='200'
+# RA parameters — tuned for maximum battery life (low multicast wakeups)
+uci set dhcp.lan.ra_maxinterval='1800'
+uci set dhcp.lan.ra_mininterval='600'
 uci set dhcp.lan.ra_lifetime='3600'
 uci set dhcp.lan.ra_mtu='1280'
 uci set dhcp.lan.ra_unicast='1'
