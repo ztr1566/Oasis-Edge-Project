@@ -263,6 +263,136 @@ uci set firewall.lan_to_warp=forwarding
 uci set firewall.lan_to_warp.src='lan'
 uci set firewall.lan_to_warp.dest='warp'
 
+# =========================================================================
+# 10b. Enhanced VPN & DoH/DoT Bypass Block Rules
+# =========================================================================
+# Idempotently delete existing rules to prevent duplicates
+delete_firewall_rule() {
+    local name="$1"
+    local idx=0
+    while true; do
+        local sectype=$(uci -q get firewall.@rule[$idx])
+        [ -z "$sectype" ] && break
+        local rname=$(uci -q get firewall.@rule[$idx].name)
+        if [ "$rname" = "$name" ]; then
+            uci delete firewall.@rule[$idx]
+            continue
+        fi
+        idx=$((idx + 1))
+    done
+}
+
+delete_firewall_rule "Block-OpenVPN-LAN"
+delete_firewall_rule "Block-IPSec-LAN"
+delete_firewall_rule "Block-GRE-LAN"
+delete_firewall_rule "Block-ESP-LAN"
+delete_firewall_rule "Block-L2TP-LAN"
+delete_firewall_rule "Block-WireGuard-LAN"
+delete_firewall_rule "Block-PPTP-LAN"
+delete_firewall_rule "Block-Tor-Ports"
+delete_firewall_rule "Block-Socks-Proxy-Ports"
+delete_firewall_rule "Block-Public-DNS-Bypass-IPv4"
+delete_firewall_rule "Block-Public-DNS-Bypass-IPv6"
+
+# Add OpenVPN rule (ports 1194-1200 TCP/UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-OpenVPN-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='1194-1200'
+uci set firewall.@rule[-1].proto='tcp udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add IPSec rule (ports 500, 4500 UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-IPSec-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='500 4500'
+uci set firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add GRE rule (Protocol 47)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-GRE-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].proto='47'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add ESP rule (Protocol 50)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-ESP-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].proto='50'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add L2TP rule (port 1701 UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-L2TP-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='1701'
+uci set firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add WireGuard rule (ports 51820-51830 UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-WireGuard-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='51820-51830'
+uci set firewall.@rule[-1].proto='udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add PPTP rule (port 1723 TCP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-PPTP-LAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='1723'
+uci set firewall.@rule[-1].proto='tcp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add Tor rule (ports 9001, 9030, 9050, 9051, 9150 TCP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Tor-Ports'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='9001 9030 9050 9051 9150'
+uci set firewall.@rule[-1].proto='tcp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add Socks/Shadowsocks proxy rule (ports 1080, 8388 TCP/UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Socks-Proxy-Ports'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_port='1080 8388'
+uci set firewall.@rule[-1].proto='tcp udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add DoH/DoT/DoQ Public DNS Bypass IPv4 (ports 443, 784, 853 TCP/UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Public-DNS-Bypass-IPv4'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_ip='1.1.1.1 1.0.0.1 1.1.1.3 1.0.0.3 8.8.8.8 8.8.4.4 9.9.9.9 149.112.112.112 94.140.14.14 94.140.15.15'
+uci set firewall.@rule[-1].dest_port='443 784 853'
+uci set firewall.@rule[-1].proto='tcp udp'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Add DoH/DoT/DoQ Public DNS Bypass IPv6 (ports 443, 784, 853 TCP/UDP)
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Public-DNS-Bypass-IPv6'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='*'
+uci set firewall.@rule[-1].dest_ip='2606:4700:4700::1111 2606:4700:4700::1001 2606:4700:4700::1113 2606:4700:4700::1003 2001:4860:4860::8888 2001:4860:4860::8844 2620:fe::fe 2620:fe::9 2a10:50c0::ad1:ff 2a10:50c0::ad2:ff'
+uci set firewall.@rule[-1].dest_port='443 784 853'
+uci set firewall.@rule[-1].proto='tcp udp'
+uci set firewall.@rule[-1].target='REJECT'
+
 uci commit network
 uci commit firewall
 echo "   ➔ WireGuard wg0 configured and firewall updated."
