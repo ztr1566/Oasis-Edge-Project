@@ -182,32 +182,7 @@ uci commit dhcp
 uci commit network
 echo "   ➔ IPv6: SLAAC enabled, stateful DHCPv6 disabled, RA timers synced."
 
-# Ensure the IPv6 SLAAC auto-naming script is executable
-if [ -f /root/sync_ipv6_hosts.sh ]; then
-    chmod +x /root/sync_ipv6_hosts.sh
-    echo "   ➔ IPv6 SLAAC sync script permissions restored."
 
-    # Re-inject the cron job silently if missing (every 1 minute)
-    if ! crontab -l 2>/dev/null | grep -q 'sync_ipv6_hosts.sh'; then
-        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
-        echo "   ➔ Cron job for IPv6 SLAAC sync injected (every 1 min)."
-    fi
-fi
-
-if [ -f /root/sync_agh_ipv6_clients.sh ]; then
-    chmod +x /root/sync_agh_ipv6_clients.sh
-    echo "   ➔ AdGuardHome IPv6 sync script permissions restored."
-
-    if ! crontab -l 2>/dev/null | grep -q 'sync_agh_ipv6_clients.sh'; then
-        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_agh_ipv6_clients.sh >/dev/null 2>&1') | crontab -
-        echo "   ➔ Cron job for AGH IPv6 sync injected (every 1 min)."
-    fi
-fi
-
-if [ -f /root/show_ipv6_clients.sh ]; then
-    chmod +x /root/show_ipv6_clients.sh
-    echo "   ➔ IPv6 client viewer script permissions restored."
-fi
 
 # =========================================================================
 # 9. SQM / QoS Hardening
