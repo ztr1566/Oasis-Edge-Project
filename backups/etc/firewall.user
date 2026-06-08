@@ -15,3 +15,34 @@ nft add rule inet fw4 mangle_forward oifname "br-lan" ip daddr 192.168.2.107 ip 
 # IPv6 DSCP marking (same priority devices)
 nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 34:e1:2d:4b:3a:07 ip6 dscp set cs4 comment "\"DSCP6-Predator-Out\"" 2>/dev/null
 nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 78:b6:fe:40:59:2f ip6 dscp set cs4 comment "\"DSCP6-Ziad-Out\"" 2>/dev/null
+
+# ===================================================================
+# Dynamic MAC Whitelist Sync from DHCP Static Leases
+# ===================================================================
+# Clear the existing nftables allowed_macs set
+nft flush set inet fw4 allowed_macs 2>/dev/null
+
+# Read all MACs from dhcp.@host configurations and add them
+idx=0
+while true; do
+    sectype=$(uci -q get dhcp.@host[$idx])
+    [ -z "$sectype" ] && break
+    
+    mac=$(uci -q get dhcp.@host[$idx].mac)
+    if [ -n "$mac" ]; then
+        for m in $mac; do
+            m_lower=$(echo "$m" | tr 'A-Z' 'a-z')
+            nft add element inet fw4 allowed_macs { "$m_lower" } 2>/dev/null
+        done
+    fi
+    idx=$((idx + 1))
+done
+
+# Add infrastructure MACs (e.g. modems/gateways)
+nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54" } 2>/dev/null
+
+# === Global MAC Filter Enforcement (IPv4 + IPv6) ===
+# Insert reject rule at the beginning of forward_lan to drop any forwarding traffic from unauthorized MACs.
+if ! nft list chain inet fw4 forward_lan 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
+    nft insert rule inet fw4 forward_lan ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+fi

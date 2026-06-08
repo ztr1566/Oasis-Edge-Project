@@ -454,21 +454,7 @@ uci set firewall.allowed_macs=ipset
 uci set firewall.allowed_macs.name='allowed_macs'
 uci set firewall.allowed_macs.match='src_mac'
 
-# Create Block-Unauthorized-WAN rule
-uci add firewall rule
-uci set firewall.@rule[-1].name='Block-Unauthorized-WAN'
-uci set firewall.@rule[-1].src='lan'
-uci set firewall.@rule[-1].dest='wan'
-uci set firewall.@rule[-1].ipset='!allowed_macs'
-uci set firewall.@rule[-1].target='REJECT'
 
-# Create Block-Unauthorized-WARP rule
-uci add firewall rule
-uci set firewall.@rule[-1].name='Block-Unauthorized-WARP'
-uci set firewall.@rule[-1].src='lan'
-uci set firewall.@rule[-1].dest='warp'
-uci set firewall.@rule[-1].ipset='!allowed_macs'
-uci set firewall.@rule[-1].target='REJECT'
 
 uci commit network
 uci commit firewall
@@ -491,7 +477,7 @@ COOLDOWN_FILE="/tmp/wan_reconnect_cooldown"
 COOLDOWN=600        # 10 min cooldown after successful run or exhaustion
 LOCK_FILE="/tmp/check_wg_197.lock"
 MAX_RETRIES=5
-DISCONNECT_WAIT=15  # seconds to keep interface down so RADIUS clears session
+DISCONNECT_WAIT=3  # seconds to keep interface down so RADIUS clears session
 POLL_TIMEOUT=24     # seconds to wait for PPPoE negotiation
 
 # 1. Prevent concurrent runs (Lock file check)

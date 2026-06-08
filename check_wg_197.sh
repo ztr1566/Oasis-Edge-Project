@@ -13,7 +13,7 @@ COOLDOWN_FILE="/tmp/wan_reconnect_cooldown"
 COOLDOWN=600        # 10 min cooldown after successful run or exhaustion
 LOCK_FILE="/tmp/check_wg_197.lock"
 MAX_RETRIES=5
-DISCONNECT_WAIT=15  # seconds to keep interface down so RADIUS clears session
+DISCONNECT_WAIT=3  # seconds to keep interface down so RADIUS clears session
 POLL_TIMEOUT=24     # seconds to wait for PPPoE negotiation
 
 # 1. Prevent concurrent runs (Lock file check)

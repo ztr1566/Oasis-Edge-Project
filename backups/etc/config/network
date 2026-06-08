@@ -30,6 +30,7 @@ config interface 'WAN'
 	option ipv6 '0'
 	option multipath 'off'
 	option peerdns '0'
+	option keepalive '5 3'
 
 config interface 'modem'
 	option proto 'static'
