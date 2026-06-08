@@ -230,16 +230,6 @@ sysctl -p /etc/sysctl.d/90-battery-optimize.conf >/dev/null 2>&1
 grep -q '/etc/sysctl.d/90-battery-optimize.conf' /etc/sysupgrade.conf || echo '/etc/sysctl.d/90-battery-optimize.conf' >> /etc/sysupgrade.conf
 
 # Ensure the IPv6 SLAAC auto-naming script is executable
-if [ -f /root/sync_ipv6_hosts.sh ]; then
-    chmod +x /root/sync_ipv6_hosts.sh
-    echo "   ➔ IPv6 SLAAC sync script permissions restored."
-
-    # Re-inject the cron job silently if missing (every 2 minutes)
-    if ! crontab -l 2>/dev/null | grep -q 'sync_ipv6_hosts.sh'; then
-        (crontab -l 2>/dev/null; echo '*/2 * * * * /root/sync_ipv6_hosts.sh >/dev/null 2>&1') | crontab -
-        echo "   ➔ Cron job for IPv6 SLAAC sync injected (every 2 min)."
-    fi
-fi
 
 # =========================================================================
 # 9. SQM / QoS Hardening
