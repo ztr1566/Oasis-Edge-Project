@@ -1,0 +1,22 @@
+#!/bin/sh
+# ===================================================================
+# DHCP Hotplug MAC Whitelist Sync
+# ===================================================================
+# Triggered on DHCP lease add/update/remove.
+# Automatically whitelists MAC addresses in the firewall if they
+# exist in the DHCP static leases config.
+# ===================================================================
+
+case "$ACTION" in
+    add|update)
+        [ -z "$MACADDR" ] && exit 0
+        
+        # Normalize MAC to lowercase
+        MAC_LOWER=$(echo "$MACADDR" | tr 'A-Z' 'a-z')
+        
+        # Check if MAC exists in the static leases configuration (/etc/config/dhcp)
+        if uci show dhcp 2>/dev/null | grep -q -i -E "mac='$MACADDR'|mac='$MAC_LOWER'"; then
+            nft add element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
+        fi
+        ;;
+esac

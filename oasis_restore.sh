@@ -54,6 +54,11 @@ if [ -f /etc/hotplug.d/iface/99-wg6-route ]; then
     echo "   ➔ Executable restored: /etc/hotplug.d/iface/99-wg6-route"
 fi
 
+if [ -f /etc/hotplug.d/dhcp/90-mac-whitelist ]; then
+    chmod +x /etc/hotplug.d/dhcp/90-mac-whitelist
+    echo "   ➔ Executable restored: /etc/hotplug.d/dhcp/90-mac-whitelist"
+fi
+
 if [ -f /etc/firewall.user ]; then
     chmod +x /etc/firewall.user
     echo "   ➔ Executable restored: /etc/firewall.user"
@@ -89,6 +94,37 @@ nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54"
 EOF
         echo "   ➔ Dynamic MAC whitelist sync script injected into /etc/firewall.user"
     fi
+fi
+
+# Deploy DHCP Hotplug MAC Whitelist Sync script if missing
+if [ ! -f /etc/hotplug.d/dhcp/90-mac-whitelist ]; then
+    mkdir -p /etc/hotplug.d/dhcp
+    cat << 'EOF' > /etc/hotplug.d/dhcp/90-mac-whitelist
+#!/bin/sh
+# ===================================================================
+# DHCP Hotplug MAC Whitelist Sync
+# ===================================================================
+# Triggered on DHCP lease add/update/remove.
+# Automatically whitelists MAC addresses in the firewall if they
+# exist in the DHCP static leases config.
+# ===================================================================
+
+case "$ACTION" in
+    add|update)
+        [ -z "$MACADDR" ] && exit 0
+        
+        # Normalize MAC to lowercase
+        MAC_LOWER=$(echo "$MACADDR" | tr 'A-Z' 'a-z')
+        
+        # Check if MAC exists in the static leases configuration (/etc/config/dhcp)
+        if uci show dhcp 2>/dev/null | grep -q -i -E "mac='$MACADDR'|mac='$MAC_LOWER'"; then
+            nft add element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
+        fi
+        ;;
+esac
+EOF
+    chmod +x /etc/hotplug.d/dhcp/90-mac-whitelist
+    echo "   ➔ DHCP MAC whitelist hotplug script deployed."
 fi
 
 if [ -f /etc/dropbear/authorized_keys ]; then
