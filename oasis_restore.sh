@@ -418,6 +418,47 @@ uci set firewall.@rule[-1].dest_port='443 784 853'
 uci set firewall.@rule[-1].proto='tcp udp'
 uci set firewall.@rule[-1].target='REJECT'
 
+# =========================================================================
+# 10c. MAC-based Whitelist Firewall Rules
+# =========================================================================
+# Deletes old trap range rule and adds MAC whitelist rules
+uci -q delete firewall.block_trap
+uci -q delete firewall.allowed_macs
+delete_firewall_rule "Block-Unauthorized-WAN"
+delete_firewall_rule "Block-Unauthorized-WARP"
+
+# Create allowed_macs ipset
+uci set firewall.allowed_macs=ipset
+uci set firewall.allowed_macs.name='allowed_macs'
+uci set firewall.allowed_macs.match='src_mac'
+uci add_list firewall.allowed_macs.entry='80:47:86:68:e3:3d'
+uci add_list firewall.allowed_macs.entry='24:18:1d:81:a7:f2'
+uci add_list firewall.allowed_macs.entry='92:4d:25:58:51:b2'
+uci add_list firewall.allowed_macs.entry='cc:62:00:38:98:ef'
+uci add_list firewall.allowed_macs.entry='34:e1:2d:4b:3a:07'
+uci add_list firewall.allowed_macs.entry='04:e5:98:62:04:13'
+uci add_list firewall.allowed_macs.entry='b0:fc:36:29:5a:ff'
+uci add_list firewall.allowed_macs.entry='78:b6:fe:40:59:2f'
+uci add_list firewall.allowed_macs.entry='90:a2:5b:0c:b3:bd'
+uci add_list firewall.allowed_macs.entry='e8:48:b8:13:fa:e6'
+uci add_list firewall.allowed_macs.entry='50:78:b3:a8:30:54'
+
+# Create Block-Unauthorized-WAN rule
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Unauthorized-WAN'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='wan'
+uci set firewall.@rule[-1].ipset='!allowed_macs'
+uci set firewall.@rule[-1].target='REJECT'
+
+# Create Block-Unauthorized-WARP rule
+uci add firewall rule
+uci set firewall.@rule[-1].name='Block-Unauthorized-WARP'
+uci set firewall.@rule[-1].src='lan'
+uci set firewall.@rule[-1].dest='warp'
+uci set firewall.@rule[-1].ipset='!allowed_macs'
+uci set firewall.@rule[-1].target='REJECT'
+
 uci commit network
 uci commit firewall
 echo "   ➔ WireGuard wg0 configured and firewall updated."
