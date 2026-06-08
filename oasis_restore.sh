@@ -91,6 +91,13 @@ done
 
 # Add infrastructure MACs (e.g. modems/gateways)
 nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54" } 2>/dev/null
+
+# === Global MAC Filter Enforcement (IPv4 + IPv6) ===
+# Insert reject rule at the beginning of the main forward chain to drop any forwarding traffic from unauthorized MACs.
+# Must run before conntrack (established) rule to block active sessions instantly.
+if ! nft list chain inet fw4 forward 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
+    nft insert rule inet fw4 forward iifname "br-lan" ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+fi
 EOF
         echo "   ➔ Dynamic MAC whitelist sync script injected into /etc/firewall.user"
     fi
