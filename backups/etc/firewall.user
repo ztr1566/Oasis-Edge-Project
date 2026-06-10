@@ -12,9 +12,6 @@ nft add rule inet fw4 mangle_forward oifname "br-lan" ip daddr 192.168.2.104 ip 
 nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 78:b6:fe:40:59:2f ip dscp set cs4 comment "\"DSCP-Ziad-Out\"" 2>/dev/null
 nft add rule inet fw4 mangle_forward oifname "br-lan" ip daddr 192.168.2.107 ip dscp set cs4 comment "\"DSCP-Ziad-In\"" 2>/dev/null
 
-# IPv6 DSCP marking (same priority devices)
-nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 34:e1:2d:4b:3a:07 ip6 dscp set cs4 comment "\"DSCP6-Predator-Out\"" 2>/dev/null
-nft add rule inet fw4 mangle_forward iifname "br-lan" ether saddr 78:b6:fe:40:59:2f ip6 dscp set cs4 comment "\"DSCP6-Ziad-Out\"" 2>/dev/null
 
 # ===================================================================
 # Dynamic MAC Whitelist Sync from DHCP Static Leases
@@ -41,9 +38,16 @@ done
 # Add infrastructure MACs (e.g. modems/gateways)
 nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54" } 2>/dev/null
 
-# === Global MAC Filter Enforcement (IPv4 + IPv6) ===
-# Insert reject rule at the beginning of the main forward chain to drop any forwarding traffic from unauthorized MACs.
+# === Global MAC Filter Enforcement (IPv4) ===
+# 1. Forward Chain: Drop any forwarding traffic from unauthorized MACs.
 # Must run before conntrack (established) rule to block active sessions instantly.
 if ! nft list chain inet fw4 forward 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
     nft insert rule inet fw4 forward iifname "br-lan" ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+fi
+
+# 2. Input Chain: Block unauthorized MACs from accessing the router itself (LuCI, DNS, SSH),
+# but allow DHCP (UDP port 67) so they can request an IP.
+if ! nft list chain inet fw4 input 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
+    nft insert rule inet fw4 input iifname "br-lan" ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+    nft insert rule inet fw4 input iifname "br-lan" udp dport 67 accept comment "\"Allow-DHCP-Input\"" 2>/dev/null
 fi

@@ -49,11 +49,6 @@ echo "✅ All required packages installed."
 
 # 5. Restore Executable Permissions for Custom Hardening and Scripts
 echo "🛡️ Restoring file permissions..."
-if [ -f /etc/hotplug.d/iface/99-wg6-route ]; then
-    chmod +x /etc/hotplug.d/iface/99-wg6-route
-    echo "   ➔ Executable restored: /etc/hotplug.d/iface/99-wg6-route"
-fi
-
 if [ -f /etc/hotplug.d/dhcp/90-mac-whitelist ]; then
     chmod +x /etc/hotplug.d/dhcp/90-mac-whitelist
     echo "   ➔ Executable restored: /etc/hotplug.d/dhcp/90-mac-whitelist"
@@ -92,11 +87,18 @@ done
 # Add infrastructure MACs (e.g. modems/gateways)
 nft add element inet fw4 allowed_macs { "e8:48:b8:13:fa:e6", "50:78:b3:a8:30:54" } 2>/dev/null
 
-# === Global MAC Filter Enforcement (IPv4 + IPv6) ===
-# Insert reject rule at the beginning of the main forward chain to drop any forwarding traffic from unauthorized MACs.
+# === Global MAC Filter Enforcement (IPv4) ===
+# 1. Forward Chain: Drop any forwarding traffic from unauthorized MACs.
 # Must run before conntrack (established) rule to block active sessions instantly.
 if ! nft list chain inet fw4 forward 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
     nft insert rule inet fw4 forward iifname "br-lan" ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+fi
+
+# 2. Input Chain: Block unauthorized MACs from accessing the router itself (LuCI, DNS, SSH),
+# but allow DHCP (UDP port 67) so they can request an IP.
+if ! nft list chain inet fw4 input 2>/dev/null | grep -q "Block-Unauthorized-MACs"; then
+    nft insert rule inet fw4 input iifname "br-lan" ether saddr != @allowed_macs counter reject comment "\"Block-Unauthorized-MACs\"" 2>/dev/null
+    nft insert rule inet fw4 input iifname "br-lan" udp dport 67 accept comment "\"Allow-DHCP-Input\"" 2>/dev/null
 fi
 EOF
         echo "   ➔ Dynamic MAC whitelist sync script injected into /etc/firewall.user"
@@ -126,6 +128,14 @@ case "$ACTION" in
         # Check if MAC exists in the static leases configuration (/etc/config/dhcp)
         if uci show dhcp 2>/dev/null | grep -q -i -E "mac='$MACADDR'|mac='$MAC_LOWER'"; then
             nft add element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
+        fi
+        ;;
+    remove|destroy|release)
+        [ -z "$MACADDR" ] && exit 0
+        MAC_LOWER=$(echo "$MACADDR" | tr 'A-Z' 'a-z')
+        # Check if MAC no longer exists in static leases config before deleting element
+        if ! uci show dhcp 2>/dev/null | grep -q -i -E "mac='$MACADDR'|mac='$MAC_LOWER'"; then
+            nft delete element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
         fi
         ;;
 esac
@@ -205,58 +215,43 @@ for svc in px5g gpio_switch; do
 done
 
 # =========================================================================
-# 8b. IPv6 SLAAC + Stateless RA Optimization
+# 8b. IPv6 Deactivation (IPv4 Only System)
 # =========================================================================
-# Strategy: SLAAC for addresses (A-flag) + RA-only for DNS (O-flag).
-# Stateful DHCPv6 address assignment is DISABLED to prevent duplicate
-# /128 addresses on clients alongside SLAAC /64 addresses.
-# DNS is delivered via RDNSS in Router Advertisements (works for all
-# devices including Android which ignores DHCPv6).
-# =========================================================================
-echo "🌐 Applying IPv6 SLAAC optimization..."
+echo "🌐 Deactivating IPv6..."
 
-# Remove deprecated ra_management (conflicts with modern ra_flags)
-uci -q delete dhcp.lan.ra_management
+# Disable IPv6 on LAN
+uci -q set network.lan.ipv6='0'
+uci -q delete network.lan.ip6addr
+uci -q delete network.globals.ula_prefix
 
-# RA server enabled, stateful DHCPv6 disabled (no /128 address leases)
-uci set dhcp.lan.ra='server'
-uci set dhcp.lan.dhcpv6='disabled'
-
-# Enable SLAAC (A-flag) — clients auto-generate their own IPv6 address
-uci set dhcp.lan.ra_slaac='1'
-
-# Clean ra_flags (Stateless SLAAC only, no DHCPv6 other-config query loop)
+# Disable Router Advertisements (RA) and DHCPv6 completely on LAN
+uci -q set dhcp.lan.ra='disabled'
+uci -q set dhcp.lan.dhcpv6='disabled'
+uci -q delete dhcp.lan.ra_slaac
 uci -q delete dhcp.lan.ra_flags
-
-# RA parameters — tuned for maximum battery life (low multicast wakeups)
-uci set dhcp.lan.ra_maxinterval='1800'
-uci set dhcp.lan.ra_mininterval='600'
-uci set dhcp.lan.ra_lifetime='3600'
-uci set dhcp.lan.ra_mtu='1280'
-uci set dhcp.lan.ra_unicast='1'
-uci set dhcp.lan.ra_retransmit='2000'
-uci set dhcp.lan.ra_default='2'
-uci -q delete dhcp.lan.ra_reachable
+uci -q delete dhcp.lan.ra_maxinterval
+uci -q delete dhcp.lan.ra_mininterval
+uci -q delete dhcp.lan.ra_lifetime
+uci -q delete dhcp.lan.ra_mtu
+uci -q delete dhcp.lan.ra_unicast
+uci -q delete dhcp.lan.ra_retransmit
+uci -q delete dhcp.lan.ra_default
 uci -q delete dhcp.lan.ra_dns
-uci add_list dhcp.lan.ra_dns='2a09:7373::1'
-
-# Sync RA lifetimes with DHCPv4 leasetime for consistency
-uci set dhcp.lan.ra_useleasetime='1'
+uci -q delete dhcp.lan.ra_useleasetime
 
 # Tune DHCPv4 lease time to 24 hours (reduces client renewal wakeups)
 uci set dhcp.lan.leasetime='24h'
 
 # Add DHCPv4 options for faster browsing (domain, broadcast, disable WPAD)
+uci -q delete dhcp.lan.dhcp_option
+uci add_list dhcp.lan.dhcp_option='6,192.168.2.1'
 uci add_list dhcp.lan.dhcp_option='15,lan'
 uci add_list dhcp.lan.dhcp_option='28,192.168.2.255'
 uci add_list dhcp.lan.dhcp_option='252,"\n"'
 
-# Remove ULA prefix if present (redundant with stable ISP GUA prefix)
-uci -q delete network.globals.ula_prefix
-
 uci commit dhcp
 uci commit network
-echo "   ➔ IPv6: SLAAC enabled, stateful DHCPv6 disabled, RA timers synced."
+echo "   ➔ IPv6 disabled globally and on LAN interface."
 
 # Deploy battery-saving sysctl settings (reduce ARP and neighbor probe frequency)
 mkdir -p /etc/sysctl.d
@@ -307,51 +302,7 @@ uci commit firewall
 uci commit sqm
 echo "✅ SQM / QoS hardening applied and committed."
 
-# =========================================================================
-# 10. WireGuard Tunnel — Cloudflare WARP IPv6
-# =========================================================================
-# WireGuard for best latency and Egypt routing.
-# A cron script bounces the WAN interface if the IP starts with
-# 197.x.x.x, since Egyptian ISPs block WireGuard handshakes on that range.
-# =========================================================================
-echo "🔒 Configuring WireGuard WARP tunnel for IPv6..."
 
-# Configure WireGuard wg0 interface
-uci set network.wg0=interface
-uci set network.wg0.proto='wireguard'
-uci set network.wg0.private_key='4JiByvjAZ4pI/Gxub5nG84Nm9v+IT9gj4CJNvd71Q1c='
-uci -q delete network.wg0.addresses
-uci add_list network.wg0.addresses='172.16.0.2/32'
-uci add_list network.wg0.addresses='2606:4700:110:8547:f97:aeec:7fd6:1d36/128'
-uci set network.wg0.mtu='1280'
-
-uci -q delete network.@wireguard_wg0[0]
-uci add network wireguard_wg0
-uci rename network.@wireguard_wg0[-1]=wg0_peer
-uci set network.wg0_peer.public_key='bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo='
-uci set network.wg0_peer.endpoint_host='162.159.192.1'
-uci set network.wg0_peer.endpoint_port='2408'
-uci set network.wg0_peer.route_allowed_ips='1'
-uci -q delete network.wg0_peer.allowed_ips
-uci add_list network.wg0_peer.allowed_ips='::/0'
-uci set network.wg0_peer.persistent_keepalive='25'
-
-# Configure firewall zone for wg0 device
-uci set firewall.warp=zone
-uci set firewall.warp.name='warp'
-uci set firewall.warp.device='wg0'
-uci set firewall.warp.network='wg0'
-uci set firewall.warp.input='REJECT'
-uci set firewall.warp.output='ACCEPT'
-uci set firewall.warp.forward='REJECT'
-uci set firewall.warp.masq='1'
-uci set firewall.warp.mtu_fix='1'
-uci set firewall.warp.masq6='1'
-
-# Ensure LAN->WARP forwarding exists
-uci set firewall.lan_to_warp=forwarding
-uci set firewall.lan_to_warp.src='lan'
-uci set firewall.lan_to_warp.dest='warp'
 
 # =========================================================================
 # 10b. Enhanced VPN & DoH/DoT Bypass Block Rules
@@ -473,150 +424,39 @@ uci set firewall.@rule[-1].dest_port='443 784 853'
 uci set firewall.@rule[-1].proto='tcp udp'
 uci set firewall.@rule[-1].target='REJECT'
 
-# Add DoH/DoT/DoQ Public DNS Bypass IPv6 (ports 443, 784, 853 TCP/UDP)
-uci add firewall rule
-uci set firewall.@rule[-1].name='Block-Public-DNS-Bypass-IPv6'
-uci set firewall.@rule[-1].src='lan'
-uci set firewall.@rule[-1].dest='*'
-uci set firewall.@rule[-1].dest_ip='2606:4700:4700::1111 2606:4700:4700::1001 2606:4700:4700::1113 2606:4700:4700::1003 2001:4860:4860::8888 2001:4860:4860::8844 2620:fe::fe 2620:fe::9 2a10:50c0::ad1:ff 2a10:50c0::ad2:ff'
-uci set firewall.@rule[-1].dest_port='443 784 853'
-uci set firewall.@rule[-1].proto='tcp udp'
-uci set firewall.@rule[-1].target='REJECT'
+
 
 # =========================================================================
-# 10c. MAC-based Whitelist Firewall Rules
+# 10c. MAC-based Whitelist Firewall Rules & Cleanup
 # =========================================================================
-# Deletes old trap range rule and adds MAC whitelist rules
+# Delete old or unused firewall rules, zones, and ipsets
 uci -q delete firewall.block_trap
 uci -q delete firewall.allowed_macs
+uci -q delete firewall.warp
+uci -q delete firewall.lan_to_warp
+uci -q delete firewall.vpn_block6
+uci -q delete firewall.block_vpn_ips_v6
+
 delete_firewall_rule "Block-Unauthorized-WAN"
 delete_firewall_rule "Block-Unauthorized-WARP"
+delete_firewall_rule "Intercept-DNS-UDP-v6"
+delete_firewall_rule "Intercept-DNS-TCP-v6"
 
 # Create allowed_macs ipset
 uci set firewall.allowed_macs=ipset
 uci set firewall.allowed_macs.name='allowed_macs'
 uci set firewall.allowed_macs.match='src_mac'
 
-
-
 uci commit network
 uci commit firewall
-echo "   ➔ WireGuard wg0 configured and firewall updated."
+echo "   ➔ Firewall MAC whitelisting structure rebuilt."
 
-# Deploy the WAN IP checker with cooldown (avoids 197.x DPI blocks)
-cat << 'EOF' > /root/check_wg_197.sh
-#!/bin/sh
-# ==============================================================================
-# WAN IP Checker — Avoid 197.x DPI-blocked ranges
-# ==============================================================================
-# Egyptian ISPs block WireGuard handshakes on 197.x.x.x IP ranges via DPI.
-# This script reconnects PPPoE repeatedly (up to 5 attempts) until it gets
-# a non-197 IP. Runs via cron every minute.
-# ==============================================================================
-
-export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
-
-COOLDOWN_FILE="/tmp/wan_reconnect_cooldown"
-COOLDOWN=600        # 10 min cooldown after successful run or exhaustion
-LOCK_FILE="/tmp/check_wg_197.lock"
-MAX_RETRIES=5
-DISCONNECT_WAIT=3  # seconds to keep interface down so RADIUS clears session
-POLL_TIMEOUT=24     # seconds to wait for PPPoE negotiation
-
-# 1. Prevent concurrent runs (Lock file check)
-if [ -f "$LOCK_FILE" ]; then
-    PID=$(cat "$LOCK_FILE" 2>/dev/null)
-    if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
-        # Quiet exit, another instance is already working
-        exit 0
-    fi
+# Remove the old IP checker script and cron job (no longer needed without wg0)
+rm -f /root/check_wg_197.sh
+if crontab -l 2>/dev/null | grep -q "check_wg_197.sh"; then
+    crontab -l 2>/dev/null | grep -v "check_wg_197.sh" | crontab -
 fi
-
-# Set lock file
-echo "$$" > "$LOCK_FILE"
-trap 'rm -f "$LOCK_FILE"' EXIT INT TERM
-
-# 2. Check Cooldown
-if [ -f "$COOLDOWN_FILE" ]; then
-    LAST=$(cat "$COOLDOWN_FILE" 2>/dev/null || echo 0)
-    NOW=$(date +%s)
-    if [ $((NOW - LAST)) -lt $COOLDOWN ]; then
-        exit 0
-    fi
-fi
-
-# Helper to get current WAN IP
-get_wan_ip() {
-    ip -4 addr show pppoe-WAN 2>/dev/null | grep inet | awk '{print $2}' | cut -d/ -f1
-}
-
-WAN_IP=$(get_wan_ip)
-
-# If WAN is down completely, don't do anything (netifd will bring it up)
-if [ -z "$WAN_IP" ]; then
-    exit 0
-fi
-
-# If WAN IP is not 197.x, we are good. Exit.
-if ! echo "$WAN_IP" | grep -q "^197\."; then
-    exit 0
-fi
-
-logger -t check_ip_wg "WAN IP is $WAN_IP (197.x detected). Starting reconnect loop..."
-
-ATTEMPT=0
-SUCCESS=0
-
-while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-    ATTEMPT=$((ATTEMPT + 1))
-    logger -t check_ip_wg "Attempt $ATTEMPT/$MAX_RETRIES: Bringing down WAN interface..."
-    
-    ifdown WAN
-    sleep $DISCONNECT_WAIT
-    
-    logger -t check_ip_wg "Attempt $ATTEMPT/$MAX_RETRIES: Bringing up WAN interface..."
-    ifup WAN
-    
-    # Poll for IP assignment
-    POLL=0
-    NEW_IP=""
-    while [ $POLL -lt $POLL_TIMEOUT ]; do
-        sleep 2
-        NEW_IP=$(get_wan_ip)
-        if [ -n "$NEW_IP" ]; then
-            break
-        fi
-        POLL=$((POLL + 2))
-    done
-    
-    if [ -z "$NEW_IP" ]; then
-        logger -t check_ip_wg "Attempt $ATTEMPT/$MAX_RETRIES: WAN did not get an IP in ${POLL_TIMEOUT}s."
-        continue
-    fi
-    
-    if echo "$NEW_IP" | grep -q "^197\."; then
-        logger -t check_ip_wg "Attempt $ATTEMPT/$MAX_RETRIES: Still got 197.x IP ($NEW_IP). Retrying..."
-    else
-        logger -t check_ip_wg "Attempt $ATTEMPT/$MAX_RETRIES: Successfully got clean IP $NEW_IP!"
-        SUCCESS=1
-        break
-    fi
-done
-
-# Write cooldown timestamp
-date +%s > "$COOLDOWN_FILE"
-
-if [ $SUCCESS -eq 1 ]; then
-    logger -t check_ip_wg "Reconnection sequence completed successfully."
-else
-    logger -t check_ip_wg "All $MAX_RETRIES reconnection attempts failed. Still on 197.x range. Cooling down."
-fi
-EOF
-chmod +x /root/check_wg_197.sh
-if ! crontab -l 2>/dev/null | grep -q "check_wg_197.sh"; then
-    (crontab -l 2>/dev/null; echo '* * * * * /root/check_wg_197.sh >/dev/null 2>&1') | crontab -
-fi
-echo "   ➔ Deployed IP checker with 5-min cooldown to bypass 197.x DPI block."
+echo "   ➔ Removed check_wg_197.sh and cleared its cron job."
 
 # 11. Restart Services to Apply Restored Configs
 echo "🔄 Reloading router services..."

@@ -36,19 +36,9 @@ config dhcp 'lan'
 	list dhcp_option '15,lan'
 	list dhcp_option '28,192.168.2.255'
 	list dhcp_option '252,"\n"'
-	option ra 'server'
+	option ra 'disabled'
 	option dhcpv6 'disabled'
-	option ra_default '2'
-	option ra_maxinterval '900'
-	option ra_mininterval '200'
-	option ra_lifetime '3600'
-	option ra_mtu '1280'
-	option ra_unicast '1'
-	option ra_retransmit '2000'
-	option ra_slaac '1'
-	option ra_useleasetime '1'
-	list ra_dns '2a09:7373::1'
-	list ra_flags 'other-config'
+
 
 config dhcp 'wan'
 	option interface 'wan'
@@ -249,4 +239,11 @@ config ipset
 	list name 'vpn_block'
 	list name 'vpn_block6'
 	list domain 'torproject.org'
+
+config host
+	option name 'Redmi-Note8-Pro'
+	list mac '00:08:22:6C:57:FC'
+	option ip '192.168.2.109'
+	option leasetime 'infinite'
+
 

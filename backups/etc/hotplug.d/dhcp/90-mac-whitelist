@@ -19,4 +19,12 @@ case "$ACTION" in
             nft add element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
         fi
         ;;
+    remove|destroy|release)
+        [ -z "$MACADDR" ] && exit 0
+        MAC_LOWER=$(echo "$MACADDR" | tr 'A-Z' 'a-z')
+        # Check if MAC no longer exists in static leases config before deleting element
+        if ! uci show dhcp 2>/dev/null | grep -q -i -E "mac='$MACADDR'|mac='$MAC_LOWER'"; then
+            nft delete element inet fw4 allowed_macs { "$MAC_LOWER" } 2>/dev/null
+        fi
+        ;;
 esac
