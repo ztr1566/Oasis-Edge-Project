@@ -85,55 +85,6 @@ config rule
 
 
 
-config rule
-	option name 'Block-OpenVPN-LAN'
-	option src 'lan'
-	option dest '*'
-	option dest_port '1194 1195'
-	option proto 'tcp udp'
-	option target 'REJECT'
-
-config rule
-	option name 'Block-IPSec-LAN'
-	option src 'lan'
-	option dest '*'
-	option dest_port '500 4500'
-	option proto 'udp'
-	option target 'REJECT'
-
-config rule
-	option name 'Block-GRE-LAN'
-	option src 'lan'
-	option dest '*'
-	option proto '47'
-	option target 'REJECT'
-
-config rule
-	option name 'Block-ESP-LAN'
-	option src 'lan'
-	option dest '*'
-	option proto '50'
-	option target 'REJECT'
-
-config rule
-	option name 'Block-L2TP-LAN'
-	option src 'lan'
-	option dest '*'
-	option dest_port '1701'
-	option proto 'udp'
-	option target 'REJECT'
-
-config rule
-	option name 'Block-VPN-IPs'
-	option src 'lan'
-	option dest '*'
-	option proto 'all'
-	option target 'DROP'
-	option ipset 'vpn_block'
-
-config ipset 'vpn_block'
-	option name 'vpn_block'
-	option match 'dest_ip'
 
 config ipset 'allowed_macs'
 	option name 'allowed_macs'
